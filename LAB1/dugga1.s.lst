@@ -1,0 +1,55 @@
+68K GAS  ./dugga1.s 			page 1
+
+
+   1               	setup:
+   2 0000 2E7C 0000 	        move.l #$7000,a7
+   2      7000 
+   3 0006 21FC 3050 	        move.l #$30504c39,$4000
+   3      4C39 4000 
+   4 000e 21FC 4D5B 	        move.l #$4d5b2d07,$4004
+   4      2D07 4004 
+   5 0016 21FC 4D59 	        move.l #$4d59537f,$4008
+   5      537F 4008 
+   6 001e 21FC 1D26 	        move.l #$1d264522,$400c
+   6      4522 400C 
+   7 0026 21FC 86C0 	        move.l #$86c02367,$5000
+   7      2367 5000 
+   8 002e 21FC 8451 	        move.l #$8451fa75,$5004
+   8      FA75 5004 
+   9 0036 21FC C209 	        move.l #$c209dfed,$5008
+   9      DFED 5008 
+  10 003e 21FC A878 	        move.l #$a8789adf,$500c
+  10      9ADF 500C 
+  11               	
+  12               	start:
+  13 0046 103C 000A 	        move.b #10,d0
+  14 004a 7200      	        move.l #$0,d1
+  15 004c 207C 0000 	        move.l #$4000,a0
+  15      4000 
+  16 0052 227C 0000 	        move.l #$5000,a1
+  16      5000 
+  17               	loop
+  18 0058 2448      	        move.l a0,a2
+  19 005a 1219      	        move.b (a1)+,d1
+  20 005c 0201 000F 	        and.b  #15,d1
+  21 0060 D5C1      	        add.l  d1,a2
+  22 0062 183C 0019 	        move.b #25,d4
+  23 0066 D812      	        add.b  (a2),d4
+  24 0068 4EBA 000E 	        jsr    printchar
+  25 006c 0600 FFFF 	        add.b  #-1,d0
+  26 0070 66E6      	        bne    loop
+  27               	
+  28 0072 1E3C 00E4 	        move.b #228,d7
+  29 0076 4E4E      	        trap   #14
+  30               	
+  31               	printchar:
+  32 0078 1F05      	                move.b d5,-(a7)         ; Spara undan d5 pa stacken
+  33               	waittx:
+  34 007a 1A39 0001 	                move.b $10040,d5        ; Serieportens statusregister
+  34      0040 
+  35 0080 0205 0002 	                and.b #2,d5             ; Isolera bit 1 (Ready to transmit)
+  36 0084 67F4      	                beq waittx              ; Vanta tills serieporten ar klar att sanda
+  37 0086 13C4 0001 	                move.b d4,$10042        ; Skicka ut
+  37      0042 
+  38 008c 1A1F      	                move.b (a7)+,d5         ; Aterstall d5
+  39 008e 4E75      	                rts                     ; Tips: Satt en breakpoint har om du har problem med trac
