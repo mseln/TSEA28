@@ -1,291 +1,296 @@
 68K GAS  ./lab1.s 			page 1
 
 
-   1               	start:
+   1               	main:
    2 0000 2E7C 0000 	                move.l #$7000,a7        ; Set Stackpointer to $7000
    2      7000 
-   3 0006 4EBA 003A 	                jsr setuppia
-   4               	
-   5 000a 223C 0000 	                move.l #$0001024,d1     ; adress to interrupt func
-   5      1024 
-   6 0010 21C1 0068 	                move.l d1,$0068         ; lvl 1 interrupt
-   7 0014 21C1 0074 	                move.l d1,$0074         ; lvl 1 interrupt
-   8               	
-   9               	infloop:
-  10 0018 60FE      	                bra infloop
-  11               	                ; jsr setupstr
-  12               	                ; move #$4100,a4          ; In argument to printstring
-  13               	                ; jsr printstring         ; the string to be printed starts at #$4100
-  14               	
-  15               	                ; jsr clearinput          ; Clear input from keypad
-  16               	                ; jsr hardsetcode
-  17               	                ; jsr checkcode
-  18 001a 4EBA 007E 	                jsr addkey
-  19               	end:
-  20 001e 1E3C 00FF 	                move.b #255,d7
-  21 0022 4E4E      	                trap #14
-  22               	
-  23               	
-  24               	inter:          
-  25               	                ; jsr setupstr
-  26               	                ; move #$4100,a4          ; In argument to printstring
-  27 0024 3A3C 0011 	                move #$11,d5
-  28               	                ; jsr printstring         ; the string to be printed starts at #$4100
-  29 0028 4E75      	                rts
+   3 0006 4EBA 0070 	                jsr setuppia
+   4 000a 4EBA 015C 	                jsr setupstr
+   5 000e 4EBA 013E 	                jsr setupcode
+   6               	
+   7 0012 287C 0000 	                move.l #$4100,a4          ; In arguments to printstring
+   7      4100 
+   8 0018 1A3C 000E 	                move.b #$e,d5             ; string is at $4100 with length $e (14)
+   9 001c 4EBA 008C 	                jsr printstring
+  10               	
+  11 0020 1E3C 00FF 	                move.b #255,d7
+  12 0024 4E4E      	                trap #14
+  13               	alarm_on:
+  14 0026 4EBA 009C 	                jsr activate_alarm
+  15               	alarm_on_state:
+  16 002a 4EBA 00A2 	                jsr getkey
+  17 002e 0C04 000F 	                cmp.b #$f,d4
+  18 0032 6702      	                beq submit
+  19 0034 60F4      	                bra alarm_on_state
+  20               	submit:
+  21 0036 4EBA 00D6 	                jsr checkcode
+  22 003a 0C04 0001 	                cmp.b #$1,d4
+  23 003e 6710      	                beq alarm_off             ; Correct!
+  24               	incorrect:
+  25 0040 287C 0000 	                move.l #$4100,a4          ; In arguments to printstring
+  25      4100 
+  26 0046 1A3C 000E 	                move.b #$e,d5             ; string is at $4100 with length $e (14)
+  27 004a 4EBA 005E 	                jsr printstring
+  28               	
+  29 004e 60DA      	                bra alarm_on_state
   30               	
-  31               	
-  32               	
-  33               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  34               	; In argument: ASCII-coded charactarer at register d4
-  35               	; Varning - Denna rutin gar inte att stega sig igenom med TRACE da den
-  36               	; anvander serieporten pa ett satt som ar inkompatibelt med TRACE.
-  37               	printchar:
-  38 002a 1F05      	                move.b d5,-(a7)         ; Spara undan d5 pa stacken
-  39               	waittx:
-  40 002c 1A39 0001 	                move.b $10040,d5        ; Serieportens statusregister
-  40      0040 
-  41 0032 0205 0002 	                and.b #2,d5             ; Isolera bit 1 (Ready to transmit)
-  42 0036 67F4      	                beq waittx              ; Vanta tills serieporten ar klar att sanda
-  43 0038 13C4 0001 	                move.b d4,$10042        ; Skicka ut
-  43      0042 
-  44 003e 1A1F      	                move.b (a7)+,d5         ; Aterstall d5
-  45 0040 4E75      	                rts                     ; Tips: Satt en breakpoint har om du har problem med trac
-  46               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  47               	
-  48               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  49               	setuppia:
-  50 0042 13FC 0000 	                move.b #00,$10084        ; Valj datariktningsregistret (DDRA)
-  50      0001 0084 
-  51 004a 13FC 0001 	                move.b #01,$10080        ; Satt pinne 0 pa PIAA som utgang
-  51      0001 0080 
+  31               	alarm_off:
+  32 0050 4EBA 0068 	                jsr deactivate_alarm
+  33               	alarm_off_state:
+  34 0054 4EBA 0078 	                jsr getkey
+  35 0058 0C04 000A 	                cmp.b #$a,d4
+  36 005c 66F6      	                bne.b alarm_off_state
+  37 005e 60C6      	                bra alarm_on   
+  38               	
+  39               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  40               	; In argument: ASCII-coded charactarer at register d4
+  41               	; Varning - Denna rutin gar inte att stega sig igenom med TRACE da den
+  42               	; anvander serieporten pa ett satt som ar inkompatibelt med TRACE.
+  43               	printchar:
+  44 0060 1F05      	                move.b d5,-(a7)         ; Spara undan d5 pa stacken
+  45               	waittx:
+  46 0062 1A39 0001 	                move.b $10040,d5        ; Serieportens statusregister
+  46      0040 
+  47 0068 0205 0002 	                and.b #2,d5             ; Isolera bit 1 (Ready to transmit)
+  48 006c 67F4      	                beq waittx              ; Vanta tills serieporten ar klar att sanda
+  49 006e 13C4 0001 	                move.b d4,$10042        ; Skicka ut
+  49      0042 
+  50 0074 1A1F      	                move.b (a7)+,d5         ; Aterstall d5
+  51 0076 4E75      	                rts                     ; Tips: Satt en breakpoint har om du har problem med trac
+  52               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 68K GAS  ./lab1.s 			page 2
 
 
-  52 0052 13FC 000D 	                move.b #13,$10084        ; Valj in/utgangsregistret
-  52      0001 0084 
-  53 005a 13FC 0000 	                move.b #00,$10086        ; Valj datariktningsregistret (DDRB)
-  53      0001 0086 
-  54 0062 13FC 0000 	                move.b #00,$10082        ; Satt alla pinnar som ingangar
-  54      0001 0082 
-  55 006a 13FC 000D 	                move.b #13,$10086        ; Valj in/utgangsregistret
-  55      0001 0086 
-  56 0072 4E75      	                rts
-  57               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  58               	
-  59               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  60               	; In argument: Pekare till strangen i a4
-  61               	;              Langd pa strangen i d5
-  62               	printstring:
-  63 0074 181C      	                move.b (a4)+,d4
-  64 0076 4EBA FFB2 	                jsr printchar
-  65 007a 0645 FFFF 	                add #-1,d5
-  66 007e 6702      	                beq done
-  67 0080 60F2      	                bra printstring
-  68               	done:
-  69 0082 4E75      	                rts
-  70               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  71               	
-  72               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  73               	
-  74               	;;;;;;;;;;;;;;;;;;;
-  75               	; In argument:  None
-  76               	; Out argument: None
-  77               	;
-  78               	; Function: Turns the LED connected to the PIAA on
-  79               	deactivatealarm:
-  80 0084 33FC 0000 	                move #00,$10080
-  80      0001 0080 
-  81 008c 4E75      	                rts
-  82               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  83               	
-  84               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  85               	; In argument:  None
-  86               	; Out argument: None
-  87               	;
-  88               	; Function: Turns the LED connected to the PIAA on
-  89               	activatealarm:
-  90 008e 33FC 0001 	                move #01,$10080
-  90      0001 0080 
-  91 0096 4E75      	                rts
-  92               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  93               	
-  94               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  95               	; In argument:  None
-  96               	; Out argument: Pressed button is returned at memaddr d4
-  97               	getkey:
-  98               	; Forberedelseuppgift: Skriv denna subrutin!
-  99               	                
- 100 0098 4E75      	                rts
- 101               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 102               	
+  53               	
+  54               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  55               	setuppia:
+  56 0078 13FC 0000 	                move.b #00,$10084        ; Valj datariktningsregistret (DDRA)
+  56      0001 0084 
+  57 0080 13FC 0001 	                move.b #01,$10080        ; Satt pinne 0 pa PIAA som utgang
+  57      0001 0080 
+  58 0088 13FC 000D 	                move.b #13,$10084        ; Valj in/utgangsregistret
+  58      0001 0084 
+  59 0090 13FC 0000 	                move.b #00,$10086        ; Valj datariktningsregistret (DDRB)
+  59      0001 0086 
+  60 0098 13FC 0000 	                move.b #00,$10082        ; Satt alla pinnar som ingangar
+  60      0001 0082 
+  61 00a0 13FC 000D 	                move.b #13,$10086        ; Valj in/utgangsregistret
+  61      0001 0086 
+  62 00a8 4E75      	                rts
+  63               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  64               	
+  65               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  66               	; In argument: Pekare till strangen i a4
+  67               	;              Langd pa strangen i d5
+  68               	printstring:
+  69 00aa 181C      	                move.b (a4)+,d4
+  70 00ac 4EBA FFB2 	                jsr printchar
+  71 00b0 0605 FFFF 	                add.b #-1,d5
+  72 00b4 6702      	                beq done
+  73 00b6 60F2      	                bra printstring
+  74               	done:
+  75 00b8 4E75      	                rts
+  76               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  77               	
+  78               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  79               	
+  80               	;;;;;;;;;;;;;;;;;;;
+  81               	; In argument:  None
+  82               	; Out argument: None
+  83               	;
+  84               	; Function: Turns the LED connected to the PIAA on
+  85               	deactivate_alarm:
+  86 00ba 33FC 0000 	                move #00,$10080
+  86      0001 0080 
+  87 00c2 4E75      	                rts
+  88               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  89               	
+  90               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  91               	; In argument:  None
+  92               	; Out argument: None
+  93               	;
+  94               	; Function: Turns the LED connected to the PIAA on
+  95               	activate_alarm:
+  96 00c4 33FC 0001 	                move #01,$10080
+  96      0001 0080 
+  97 00cc 4E75      	                rts
+  98               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  99               	
+ 100               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 101               	; In argument:  None
 68K GAS  ./lab1.s 			page 3
 
 
- 103               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 104               	; In argument:  Vald tangent i d4
- 105               	; Out argument: None
- 106               	;
- 107               	; Function: Flyttar $4001-$4003 bakat en byte till
- 108               	; $4000-$4002. Lagrar sedan innehallet i d4 pa adress $4003.
- 109               	addkey:
- 110 009a 1638 4001 	                move.b $4001,d3
- 111 009e 11C3 4000 	                move.b d3,$4000
- 112               	
- 113 00a2 1638 4002 	                move.b $4002,d3
- 114 00a6 11C3 4001 	                move.b d3,$4001
- 115               	                
- 116 00aa 1638 4003 	                move.b $4003,d3
- 117 00ae 11C3 4002 	                move.b d3,$4002
- 118               	                
- 119 00b2 1604      	                move.b d4,d3
- 120 00b4 11C3 4003 	                move.b d3,$4003
- 121               	
- 122 00b8 4E75      	                rts
- 123               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 124               	
- 125               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 126               	; In argument:  None
- 127               	; Out argument: None
- 128               	;
- 129               	; Function: Sets the memory at $4000-$4003 to $FF
- 130               	clearinput:
- 131 00ba 11FC 00FF 	                move.b #$ff,$4000
- 131      4000 
- 132 00c0 11FC 00FF 	                move.b #$ff,$4001
- 132      4001 
- 133 00c6 11FC 00FF 	                move.b #$ff,$4002
- 133      4002 
- 134 00cc 11FC 00FF 	                move.b #$ff,$4003
- 134      4003 
- 135               	
- 136               	                ; test correct code
- 137               	                ; move.b #$01,$4000
- 138               	                ; move.b #$03,$4001
- 139               	                ; move.b #$03,$4002
- 140               	                ; move.b #$07,$4003
- 141 00d2 4E75      	                rts
- 142               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 143               	
- 144               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 145               	; In argument:  None
- 146               	; Out argument: Returnerar 1 i d4 om koden var korrekt, annars 0 i d4
- 147               	checkcode:
- 148               	; Function: Checks if the code is correct
- 149 00d4 74FF      	                move.l #$ffffffff,d2          ; Clear d2
- 150 00d6 76FF      	                move.l #$ffffffff,d3          ; Clear d3
- 151               	                
- 152 00d8 1438 4000 	                move.b $4000,d2               ; Check if m[$4000] == m[$4010]
- 153 00dc 1638 4010 	                move.b $4010,d3
- 154 00e0 B642      	                cmp d2,d3
- 155 00e2 662A      	                bne wrong_code
+ 102               	; Out argument: Pressed button is returned at memaddr d4
+ 103               	getkey:
+ 104               	; Forberedelseuppgift: Skriv denna subrutin!
+ 105 00ce 383C 00FF 	                move #$ff,d4
+ 106               	                
+ 107 00d2 4E75      	                rts
+ 108               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 109               	
+ 110               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 111               	; In argument:  Vald tangent i d4
+ 112               	; Out argument: None
+ 113               	;
+ 114               	; Function: Flyttar $4001-$4003 bakat en byte till
+ 115               	; $4000-$4002. Lagrar sedan innehallet i d4 pa adress $4003.
+ 116               	addkey:
+ 117 00d4 1638 4001 	                move.b $4001,d3
+ 118 00d8 11C3 4000 	                move.b d3,$4000
+ 119               	
+ 120 00dc 1638 4002 	                move.b $4002,d3
+ 121 00e0 11C3 4001 	                move.b d3,$4001
+ 122               	                
+ 123 00e4 1638 4003 	                move.b $4003,d3
+ 124 00e8 11C3 4002 	                move.b d3,$4002
+ 125               	                
+ 126 00ec 1604      	                move.b d4,d3
+ 127 00ee 11C3 4003 	                move.b d3,$4003
+ 128               	
+ 129 00f2 4E75      	                rts
+ 130               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 131               	
+ 132               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 133               	; In argument:  None
+ 134               	; Out argument: None
+ 135               	;
+ 136               	; Function: Sets the memory at $4000-$4003 to $FF
+ 137               	clearinput:
+ 138 00f4 11FC 00FF 	                move.b #$ff,$4000
+ 138      4000 
+ 139 00fa 11FC 00FF 	                move.b #$ff,$4001
+ 139      4001 
+ 140 0100 11FC 00FF 	                move.b #$ff,$4002
+ 140      4002 
+ 141 0106 11FC 00FF 	                move.b #$ff,$4003
+ 141      4003 
+ 142               	
+ 143               	                ; test correct code
+ 144               	                ; move.b #$01,$4000
+ 145               	                ; move.b #$03,$4001
+ 146               	                ; move.b #$03,$4002
+ 147               	                ; move.b #$07,$4003
+ 148 010c 4E75      	                rts
+ 149               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 150               	
+ 151               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 152               	; In argument:  None
+ 153               	; Out argument: Returnerar 1 i d4 om koden var korrekt, annars 0 i d4
+ 154               	checkcode:
 68K GAS  ./lab1.s 			page 4
 
 
- 156               	
- 157 00e4 1438 4001 	                move.b $4001,d2               ; Check if m[$4001] == m[$4011]
- 158 00e8 1638 4011 	                move.b $4011,d3
- 159 00ec B642      	                cmp d2,d3
- 160 00ee 661E      	                bne wrong_code
- 161               	
- 162 00f0 1438 4002 	                move.b $4002,d2               ; Check if m[$4002] == m[$4012]
- 163 00f4 1638 4012 	                move.b $4012,d3
- 164 00f8 B642      	                cmp d2,d3
- 165 00fa 6612      	                bne wrong_code
- 166               	
- 167 00fc 1438 4003 	                move.b $4003,d2               ; Check if m[$4003] == m[$4013]
- 168 0100 1638 4013 	                move.b $4013,d3
- 169 0104 B642      	                cmp d2,d3
- 170 0106 6606      	                bne wrong_code
- 171               	
- 172               	right_code:
- 173 0108 183C 0001 	                move.b #1,d4
- 174 010c 4E75      	                rts
- 175               	wrong_code:
- 176 010e 183C 0000 	                move.b #0,d4
- 177 0112 4E75      	                rts
- 178               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 179               	
- 180               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 181               	; In argument:  None
- 182               	; Out argument: None
- 183               	hardsetcode:
- 184               	; Function hardkodar den korrekta koden i $4010-$4013
- 185 0114 11FC 0001 	                move.b #$01,$4010
- 185      4010 
- 186 011a 11FC 0003 	                move.b #$03,$4011
- 186      4011 
- 187 0120 11FC 0003 	                move.b #$03,$4012
- 187      4012 
- 188 0126 11FC 0007 	                move.b #$07,$4013
- 188      4013 
- 189 012c 4E75      	                rts
- 190               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 191               	
- 192               	
- 193               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 194               	; In argument:  None
- 195               	; Out argument: Length of string in d5
- 196               	setupstr:
- 197               	; Function sets up the string "BAKGRUNDSPROGRAM\n" to the memory 
- 198               	; adress $4100-$4110
- 199 012e 227C 0000 	                move.l #$4100,a1        ; Where to put the string
- 199      4100 
- 200 0134 1A3C 0011 	                move.b #17,d5           ; Move 16 to d5 (length of string)
- 201               	
- 202 0138 12FC 0042 	                move.b #$42,(a1)+       ; B
- 203 013c 12FC 0041 	                move.b #$41,(a1)+       ; A
- 204 0140 12FC 004B 	                move.b #$4b,(a1)+       ; K
- 205 0144 12FC 0047 	                move.b #$47,(a1)+       ; G
- 206               	
- 207 0148 12FC 0052 	                move.b #$52,(a1)+       ; R
+ 155               	; Function: Checks if the code is correct
+ 156 010e 74FF      	                move.l #$ffffffff,d2          ; Clear d2
+ 157 0110 76FF      	                move.l #$ffffffff,d3          ; Clear d3
+ 158               	                
+ 159 0112 1438 4000 	                move.b $4000,d2               ; Check if m[$4000] == m[$4010]
+ 160 0116 1638 4010 	                move.b $4010,d3
+ 161 011a B642      	                cmp d2,d3
+ 162 011c 662A      	                bne wrong_code
+ 163               	
+ 164 011e 1438 4001 	                move.b $4001,d2               ; Check if m[$4001] == m[$4011]
+ 165 0122 1638 4011 	                move.b $4011,d3
+ 166 0126 B642      	                cmp d2,d3
+ 167 0128 661E      	                bne wrong_code
+ 168               	
+ 169 012a 1438 4002 	                move.b $4002,d2               ; Check if m[$4002] == m[$4012]
+ 170 012e 1638 4012 	                move.b $4012,d3
+ 171 0132 B642      	                cmp d2,d3
+ 172 0134 6612      	                bne wrong_code
+ 173               	
+ 174 0136 1438 4003 	                move.b $4003,d2               ; Check if m[$4003] == m[$4013]
+ 175 013a 1638 4013 	                move.b $4013,d3
+ 176 013e B642      	                cmp d2,d3
+ 177 0140 6606      	                bne wrong_code
+ 178               	
+ 179               	right_code:
+ 180 0142 183C 0001 	                move.b #1,d4
+ 181 0146 4E75      	                rts
+ 182               	wrong_code:
+ 183 0148 183C 0000 	                move.b #0,d4
+ 184 014c 4E75      	                rts
+ 185               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 186               	
+ 187               	
+ 188               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 189               	; In argument:  None
+ 190               	; Out argument: None
+ 191               	setupcode:
+ 192               	; Function hardkodar den korrekta koden i $4010-$4013
+ 193 014e 11FC 0001 	                move.b #$01,$4010
+ 193      4010 
+ 194 0154 11FC 0003 	                move.b #$03,$4011
+ 194      4011 
+ 195 015a 11FC 0003 	                move.b #$03,$4012
+ 195      4012 
+ 196 0160 11FC 0007 	                move.b #$07,$4013
+ 196      4013 
+ 197 0166 4E75      	                rts
+ 198               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 199               	
+ 200               	
+ 201               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 202               	; In argument:  None
+ 203               	; Out argument: Length of string in d5
+ 204               	setupstr:
+ 205               	; Function sets up the string "BAKGRUNDSPROGRAM\n" to the memory 
+ 206               	; adress $4100-$4110
+ 207 0168 227C 0000 	                move.l #$4100,a1        ; Where to put the string
 68K GAS  ./lab1.s 			page 5
 
 
- 208 014c 12FC 0055 	                move.b #$55,(a1)+       ; U
- 209 0150 12FC 004E 	                move.b #$4e,(a1)+       ; N
- 210 0154 12FC 0044 	                move.b #$44,(a1)+       ; D
- 211               	                
- 212 0158 12FC 0053 	                move.b #$53,(a1)+       ; S
- 213 015c 12FC 0050 	                move.b #$50,(a1)+       ; P
- 214 0160 12FC 0052 	                move.b #$52,(a1)+       ; R
- 215 0164 12FC 004F 	                move.b #$4f,(a1)+       ; O
- 216               	
- 217 0168 12FC 0047 	                move.b #$47,(a1)+       ; G
- 218 016c 12FC 0052 	                move.b #$52,(a1)+       ; R
- 219 0170 12FC 0041 	                move.b #$41,(a1)+       ; A
- 220 0174 12FC 004D 	                move.b #$4d,(a1)+       ; M
- 221               	
- 222 0178 12FC 000A 	                move.b #$a,(a1)+        ; \n
- 223               	
- 224 017c 4E75      	                rts
- 225               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 226               	
+ 207      4100 
+ 208 016e 1A3C 000E 	                move.b #14,d5           ; Move 14 to d5 (length of string)
+ 209               	
+ 210 0172 12FC 0046 	                move.b #'F',(a1)+       ; F
+ 211 0176 12FC 0065 	                move.b #'e',(a1)+       ; e
+ 212 017a 12FC 006C 	                move.b #'l',(a1)+       ; l
+ 213 017e 12FC 0061 	                move.b #'a',(a1)+       ; a
+ 214               	
+ 215 0182 12FC 006B 	                move.b #'k',(a1)+       ; k
+ 216 0186 12FC 0074 	                move.b #'t',(a1)+       ; t
+ 217 018a 12FC 0069 	                move.b #'i',(a1)+       ; i
+ 218 018e 12FC 0067 	                move.b #'g',(a1)+       ; g
+ 219               	                
+ 220 0192 12FC 0020 	                move.b #' ',(a1)+       ;  
+ 221 0196 12FC 006B 	                move.b #'k',(a1)+       ; k
+ 222 019a 12FC 006F 	                move.b #'o',(a1)+       ; o
+ 223 019e 12FC 0064 	                move.b #'d',(a1)+       ; d
+ 224               	
+ 225 01a2 12FC 0021 	                move.b #'!',(a1)+       ; !
+ 226 01a6 12FC 000A 	                move.b #$a,(a1)+        ; \n
  227               	
- 228               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 229               	; In argument:  None
- 230               	; Out argument: None
- 231               	pwm:
- 232               	; Function: PWM function, uses d3 for duty cycle. Runs until d1 is zero.
- 233 017e 163C 0088 	                move.b #$88,d3
- 234               	pwm_loop:
- 235 0182 143C 00FF 	                move.b #$ff,d2
- 236               	
- 237               	duty_loop:
- 238 0186 B602      	                cmp.b d2,d3
- 239               	
- 240 0188 6604      	                bne no_act
- 241 018a 4EBA FF02 	                jsr activatealarm
- 242               	no_act:
- 243 018e 0C01 0000 	                cmp.b #$00,d1
- 244 0192 670C      	                beq pwm_done
- 245               	
- 246 0194 0602 FFFF 	                add.b #-1,d2
- 247 0198 66EC      	                bne duty_loop
- 248               	
- 249 019a 4EBA FEE8 	                jsr deactivatealarm
- 250 019e 60E2      	                bra pwm_loop
- 251               	
- 252               	pwm_done:
- 253 01a0 4EBA FEE2 	                jsr deactivatealarm
- 254 01a4 4E75      	                rts
- 255               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 228 01aa 4E75      	                rts
+ 229               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 230               	
+ 231               	
+ 232               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 233               	; In argument:  None
+ 234               	; Out argument: None
+ 235               	pwm:
+ 236               	; Function: PWM function, uses d3 for duty cycle. Runs until d1 is zero.
+ 237 01ac 163C 0088 	                move.b #$88,d3
+ 238               	pwm_loop:
+ 239 01b0 143C 00FF 	                move.b #$ff,d2
+ 240               	
+ 241               	duty_loop:
+ 242 01b4 B602      	                cmp.b d2,d3
+ 243               	
+ 244 01b6 6604      	                bne no_act
+ 245 01b8 4EBA FF0A 	                jsr activate_alarm
+ 246               	no_act:
+ 247 01bc 0C01 0000 	                cmp.b #$00,d1
+ 248 01c0 670C      	                beq pwm_done
+ 249               	
+ 250 01c2 0602 FFFF 	                add.b #-1,d2
+ 251 01c6 66EC      	                bne duty_loop
+ 252               	
+ 253 01c8 4EBA FEF0 	                jsr deactivate_alarm
+ 254 01cc 60E2      	                bra pwm_loop
+ 255               	
+ 256               	pwm_done:
+ 257 01ce 4EBA FEEA 	                jsr deactivate_alarm
+ 258 01d2 4E75      	                rts
+ 259               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

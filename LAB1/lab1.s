@@ -1,34 +1,40 @@
-start:
+main:
                 move.l #$7000,a7        ; Set Stackpointer to $7000
                 jsr setuppia
+                jsr setupstr
+                jsr setupcode
 
-                move.l #$0001024,d1     ; adress to interrupt func
-                move.l d1,$0068         ; lvl 1 interrupt
-                move.l d1,$0074         ; lvl 1 interrupt
+                ; move.l #$4100,a4          ; In arguments to printstring
+                ; move.b #$e,d5             ; string is at $4100 with length $e (14)
+                ; jsr printstring
+                ; move.b #255,d7
+                ; trap #14
 
-infloop:
-                bra infloop
-                ; jsr setupstr
-                ; move #$4100,a4          ; In argument to printstring
-                ; jsr printstring         ; the string to be printed starts at #$4100
+alarm_on:
+                jsr activate_alarm
+alarm_on_state:
+                jsr getkey
+                cmp.b #$f,d4
+                beq submit
+                bra alarm_on_state
+submit:
+                jsr checkcode
+                cmp.b #$1,d4
+                beq alarm_off             ; Correct!
+incorrect:
+                move.l #$4100,a4          ; In arguments to printstring
+                move.b #$e,d5             ; string is at $4100 with length $e (14)
+                jsr printstring
 
-                ; jsr clearinput          ; Clear input from keypad
-                ; jsr hardsetcode
-                ; jsr checkcode
-                jsr addkey
-end:
-                move.b #255,d7
-                trap #14
+                bra alarm_on_state
 
-
-inter:          
-                ; jsr setupstr
-                ; move #$4100,a4          ; In argument to printstring
-                move #$11,d5
-                ; jsr printstring         ; the string to be printed starts at #$4100
-                rts
-
-
+alarm_off:
+                jsr deactivate_alarm
+alarm_off_state:
+                jsr getkey
+                cmp.b #$a,d4
+                bne.b alarm_off_state
+                bra alarm_on   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; In argument: ASCII-coded charactarer at register d4
@@ -62,7 +68,7 @@ setuppia:
 printstring:
                 move.b (a4)+,d4
                 jsr printchar
-                add #-1,d5
+                add.b #-1,d5
                 beq done
                 bra printstring
 done:
@@ -76,8 +82,8 @@ done:
 ; Out argument: None
 ;
 ; Function: Turns the LED connected to the PIAA on
-deactivatealarm:
-                move #00,$10080
+deactivate_alarm:
+                move.b #00,$10080
                 rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -86,8 +92,8 @@ deactivatealarm:
 ; Out argument: None
 ;
 ; Function: Turns the LED connected to the PIAA on
-activatealarm:
-                move #01,$10080
+activate_alarm:
+                move.b #01,$10080
                 rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -96,6 +102,7 @@ activatealarm:
 ; Out argument: Pressed button is returned at memaddr d4
 getkey:
 ; Forberedelseuppgift: Skriv denna subrutin!
+                move.b #$ff,d4
                 
                 rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -177,10 +184,11 @@ wrong_code:
                 rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; In argument:  None
 ; Out argument: None
-hardsetcode:
+setupcode:
 ; Function hardkodar den korrekta koden i $4010-$4013
                 move.b #$01,$4010
                 move.b #$03,$4011
@@ -197,28 +205,24 @@ setupstr:
 ; Function sets up the string "BAKGRUNDSPROGRAM\n" to the memory 
 ; adress $4100-$4110
                 move.l #$4100,a1        ; Where to put the string
-                move.b #17,d5           ; Move 16 to d5 (length of string)
+                move.b #14,d5           ; Move 14 to d5 (length of string)
 
-                move.b #$42,(a1)+       ; B
-                move.b #$41,(a1)+       ; A
-                move.b #$4b,(a1)+       ; K
-                move.b #$47,(a1)+       ; G
+                move.b #'F',(a1)+       ; F
+                move.b #'e',(a1)+       ; e
+                move.b #'l',(a1)+       ; l
+                move.b #'a',(a1)+       ; a
 
-                move.b #$52,(a1)+       ; R
-                move.b #$55,(a1)+       ; U
-                move.b #$4e,(a1)+       ; N
-                move.b #$44,(a1)+       ; D
+                move.b #'k',(a1)+       ; k
+                move.b #'t',(a1)+       ; t
+                move.b #'i',(a1)+       ; i
+                move.b #'g',(a1)+       ; g
                 
-                move.b #$53,(a1)+       ; S
-                move.b #$50,(a1)+       ; P
-                move.b #$52,(a1)+       ; R
-                move.b #$4f,(a1)+       ; O
+                move.b #' ',(a1)+       ;  
+                move.b #'k',(a1)+       ; k
+                move.b #'o',(a1)+       ; o
+                move.b #'d',(a1)+       ; d
 
-                move.b #$47,(a1)+       ; G
-                move.b #$52,(a1)+       ; R
-                move.b #$41,(a1)+       ; A
-                move.b #$4d,(a1)+       ; M
-
+                move.b #'!',(a1)+       ; !
                 move.b #$a,(a1)+        ; \n
 
                 rts
@@ -238,7 +242,7 @@ duty_loop:
                 cmp.b d2,d3
 
                 bne no_act
-                jsr activatealarm
+                jsr activate_alarm
 no_act:
                 cmp.b #$00,d1
                 beq pwm_done
@@ -246,10 +250,10 @@ no_act:
                 add.b #-1,d2
                 bne duty_loop
 
-                jsr deactivatealarm
+                jsr deactivate_alarm
                 bra pwm_loop
 
 pwm_done:
-                jsr deactivatealarm
+                jsr deactivate_alarm
                 rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
