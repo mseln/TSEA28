@@ -4,10 +4,6 @@ main:
                 jsr setupstr
                 jsr setupcode
 
-loop:
-                jsr getkey
-                bra loop
-
 alarm_on:
                 jsr activate_alarm
 alarm_on_state:
