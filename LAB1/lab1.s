@@ -53,10 +53,10 @@ waittx:
 setuppia:
                 move.b #00,$10084        ; Valj datariktningsregistret (DDRA)
                 move.b #01,$10080        ; Satt pinne 0 pa PIAA som utgang
-                move.b #13,$10084        ; Valj in/utgangsregistret
+                move.b #04,$10084        ; Valj in/utgangsregistret
                 move.b #00,$10086        ; Valj datariktningsregistret (DDRB)
                 move.b #00,$10082        ; Satt alla pinnar som ingangar
-                move.b #13,$10086        ; Valj in/utgangsregistret
+                move.b #04,$10086        ; Valj in/utgangsregistret
                 rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
