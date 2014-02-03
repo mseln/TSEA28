@@ -1,3 +1,17 @@
+                move.l #$7000,a7        ; Set Stackpointer to $7000
+
+                move.b #$c0,$4000
+                move.b #$12,$4001
+                move.b #$e4,$4002
+                move.b #$4a,$4003
+                move.b #$aa,d4
+
+                jsr addkey
+
+                move.b #255,d7
+                trap #14
+
+
 main:
                 move.l #$7000,a7        ; Set Stackpointer to $7000
                 jsr setuppia
@@ -9,6 +23,7 @@ alarm_on:
 alarm_on_state:
                 jsr getkey
                 cmp.b #$f,d4
+
                 beq submit
                 bra alarm_on_state
 submit:
@@ -116,6 +131,7 @@ strobe_low:
                 bne status_quo
                 move.b $4020,d4        ; Fetch input
                 and.b  $0f,d4          ; Zero out the four MSB bits
+                jsr addkey
                 rts                    ; Return input to d4
 strobe_high:
 status_quo:     
@@ -130,17 +146,10 @@ status_quo:
 ; Function: Flyttar $4001-$4003 bakat en byte till
 ; $4000-$4002. Lagrar sedan innehallet i d4 pa adress $4003.
 addkey:
-                move.b $4001,d3
-                move.b d3,$4000
-
-                move.b $4002,d3
-                move.b d3,$4001
-                
-                move.b $4003,d3
-                move.b d3,$4002
-                
-                move.b d4,d3
-                move.b d3,$4003
+                move.l $4000,d3
+                lsl.l  #8,d3
+                move.l d3,$4000
+                move.b d4,$4003
 
                 rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -174,22 +183,22 @@ checkcode:
                 
                 move.b $4000,d2               ; Check if m[$4000] == m[$4010]
                 move.b $4010,d3
-                cmp d2,d3
+                cmp.b d2,d3
                 bne wrong_code
 
                 move.b $4001,d2               ; Check if m[$4001] == m[$4011]
                 move.b $4011,d3
-                cmp d2,d3
+                cmp.b d2,d3
                 bne wrong_code
 
                 move.b $4002,d2               ; Check if m[$4002] == m[$4012]
                 move.b $4012,d3
-                cmp d2,d3
+                cmp.b d2,d3
                 bne wrong_code
 
                 move.b $4003,d2               ; Check if m[$4003] == m[$4013]
                 move.b $4013,d3
-                cmp d2,d3
+                cmp.b d2,d3
                 bne wrong_code
 
 right_code:
