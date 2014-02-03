@@ -4,11 +4,9 @@ main:
                 jsr setupstr
                 jsr setupcode
 
-                ; move.l #$4100,a4          ; In arguments to printstring
-                ; move.b #$e,d5             ; string is at $4100 with length $e (14)
-                ; jsr printstring
-                ; move.b #255,d7
-                ; trap #14
+loop:
+                jsr getkey
+                bra loop
 
 alarm_on:
                 jsr activate_alarm
@@ -102,8 +100,30 @@ activate_alarm:
 ; Out argument: Pressed button is returned at memaddr d4
 getkey:
 ; Forberedelseuppgift: Skriv denna subrutin!
-                move.b #$ff,d4
-                
+                move.b #$00,d4
+
+                move.b $10080,d5       ; Read hexkeyboard
+                move.b $4020,d6        ; Old input
+
+                move.b d6,$4020        ; Save new input to $4022
+                move.b d5,$4022        ; Save old input to $4020
+
+                and.b  $10,d5          ; Get new strobe
+                and.b  $10,d6          ; Get old strobe
+                lsl.b  #4,d5           ; Get strobe to bit 1
+                lsl.b  #4,d6           ; Get strobe to bit 1
+
+                cmp.b  #$0,d6          ; Was strobe low?
+                bne strobe_high
+strobe_low:
+                cmp.b  #$1,d5          ; Is strobe rising?
+                bne status_quo
+                move.b $4020,d4        ; Fetch input
+                and.b  $0f,d4          ; Zero out the four MSB bits
+                rts                    ; Return input to d4
+strobe_high:
+status_quo:     
+                move.b #$00,d4
                 rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
