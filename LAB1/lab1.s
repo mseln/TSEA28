@@ -1,13 +1,3 @@
-                move.l #$7000,a7        ; Set Stackpointer to $7000
-                ; move.b #$24,$4122
-                ; jsr setupstr
-                ; jsr print_wrong
-                
-                jsr setupblink
-                jsr setuppia
-                bra alarm_on
-                move.b #255,d7
-                trap #14
 main:
                 move.l #$7000,a7        ; Set Stackpointer to $7000
                 jsr setuppia
@@ -15,14 +5,15 @@ main:
                 jsr setupcode
                 jsr setupblink
                 jsr setuppwm
+                jsr clearinput
                 bra alarm_off
 alarm_on:
                 ; jsr activate_alarm
 alarm_on_state:
                 jsr update_pwm
                 jsr pwm
-                ; jsr blink
-                ; jsr update_led
+                ;jsr blink
+                ;jsr update_led
                 jsr getkey
                 cmp.b #$f,d4
                 beq submit
@@ -42,7 +33,10 @@ incorrect:
 
 alarm_off:
                 move.b #$00,$4122         ; Reset number of tries
+                move.b #0,$4141           ; Reset counter
+                move.l #0,$4142           ; Reset metacounter
                 jsr deactivate_alarm
+                jsr clearinput
 alarm_off_state:
                 jsr getkey
                 cmp.b #$a,d4
@@ -109,7 +103,7 @@ lt_ten:
                 move.l #$4100,a4          ; In arguments to printstring
                 move.b #20,d5             ; string is at $4100 with length 20
                 jsr printstring
-
+                rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;
@@ -148,7 +142,7 @@ getkey:
 ; Forberedelseuppgift: Skriv denna subrutin!
                 move.b #$00,d4
 
-                move.b $10080,d5       ; Read hexkeyboard
+                move.b $10082,d5       ; Read hexkeyboard
                 move.b $4020,d6        ; Old input
 
                 move.b d5,$4020        ; Save new input to $4020
@@ -272,7 +266,7 @@ setupstr:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 setupblink:
-                move.l #0008000,$4200   ; Time
+                move.l #0001000,$4200   ; Time
                 move.l #0,$4204         ; Counter
                 move.b #0,$4208         ; State
                 rts
@@ -290,7 +284,7 @@ change_state:
                 move.b $4208,d2         ; Fetch state
                 add.b  #1,d2            ; Change state
                 and.b  #01,d2           ; 
-                move.l d2,$4208         ; Save state
+                move.b d2,$4208         ; Save state
                 rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -299,40 +293,56 @@ change_state:
 setuppwm:
                 move.b #1,$4140        ; delta counter
                 move.b #0,$4141        ; counter
+                move.l #0,$4142        ; metacounter
                 rts
 invert_dc:
                 move.b $4140,d2
                 neg.b d2
                 move.b d2,$4140
                 rts
-update_pwm:
+
+
+update_pwm:     
+                move.l $4142,d1
+                cmp.l  #2,d1
+                bne nop
                 move.b $4140,d2         ; fetch delta
                 move.b $4141,d3         ; fetch counter
+                move.l #0,$4142         ; reset metacounter
                 add.b d2,d3
-
-                cmp.b #$80,d2
+                cmp.b #$f0,d5
                 bne not_to_big
                 jsr invert_dc
 not_to_big:
-                cmp.b #$0,d2
+                cmp.b #$0,d3
                 bne not_to_small
                 jsr invert_dc
 not_to_small:
                 move.b d2,$4140         ; save delta
                 move.b d3,$4141         ; save counter
+nop:
+                move.l $4142,d1
+                add.l  #01,d1
+                move.l d1,$4142
                 rts
 
 pwm:
 ; Function: PWM function, uses d3 for duty cycle. Runs until d1 is zero.
                 move.b $4141,d3          ; fetch counter
-                move.b #$80,d2
-                move.l #00,$4208         ; state = 0 (led off)
+                move.b #$ff,d2
+                move.b #00,$4208         ; state = 0 (led off)
                 jsr update_led
 duty_loop:
                 cmp.b d2,d3
                 bne no_act
-                move.l #01,$4208         ; state = 1 (led on)
+                move.b #01,$4208         ; state = 1 (led on)
                 jsr update_led
+                ;move.b d3,d4
+                ;add.b  #$30,d4
+                ;jsr printchar
+                ;move.b d2,d4
+                ;add.b  #$30,d4
+                ;jsr printchar
 no_act:
                 add.b #-1,d2
                 bne duty_loop
