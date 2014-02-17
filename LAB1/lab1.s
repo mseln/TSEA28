@@ -46,32 +46,32 @@ alarm_off_state:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; In argument: ASCII-coded charactarer at register d4
 ; Varning - Denna rutin gar inte att stega sig igenom med TRACE da den
-; anvander serieporten pa ett satt som ar inkompatibelt med TRACE.
+; anvander serieporten pa ett satt som ar inkompatibelt med TRACE.
 printchar:
                 move.b d5,-(a7)         ; Spara undan d5 pa stacken
 waittx:
                 move.b $10040,d5        ; Serieportens statusregister
                 and.b #2,d5             ; Isolera bit 1 (Ready to transmit)
-                beq waittx              ; Vanta tills serieporten ar klar att sanda
+                beq waittx              ; Vanta tills serieporten ar klar att sanda
                 move.b d4,$10042        ; Skicka ut
-                move.b (a7)+,d5         ; Aterstall d5
-                rts                     ; Tips: Satt en breakpoint har om du har problem med trace!
+                move.b (a7)+,d5         ; Aterstall d5
+                rts                     ; Tips: Satt en breakpoint har om du har problem med trace!
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 setuppia:
-                move.b #00,$10084        ; Valj datariktningsregistret (DDRA)
-                move.b #01,$10080        ; Satt pinne 0 pa PIAA som utgang
-                move.b #04,$10084        ; Valj in/utgangsregistret
-                move.b #00,$10086        ; Valj datariktningsregistret (DDRB)
-                move.b #00,$10082        ; Satt alla pinnar som ingangar
-                move.b #04,$10086        ; Valj in/utgangsregistret
+                move.b #00,$10084        ; Valj datariktningsregistret (DDRA)
+                move.b #01,$10080        ; Satt pinne 0 pa PIAA som utgang
+                move.b #04,$10084        ; Valj in/utgangsregistret
+                move.b #00,$10086        ; Valj datariktningsregistret (DDRB)
+                move.b #00,$10082        ; Satt alla pinnar som ingangar
+                move.b #04,$10086        ; Valj in/utgangsregistret
                 rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; In argument: Pekare till strangen i a4
-;              Langd pa strangen i d5
+; In argument: Pekare till strangen i a4
+;              Langd pa strangen i d5
 printstring:
                 move.b (a4)+,d4
                 jsr printchar
@@ -139,7 +139,7 @@ update_led:
 ; In argument:  None
 ; Out argument: Pressed button is returned at memaddr d4
 getkey:
-; Forberedelseuppgift: Skriv denna subrutin!
+; Forberedelseuppgift: Skriv denna subrutin!
                 move.b #$00,d4
 
                 move.b $10082,d5       ; Read hexkeyboard
@@ -189,7 +189,7 @@ to_big:
 ; In argument:  None
 ; Out argument: None
 ;
-; Function: Sets the memory at $4000-$4003 to $FF
+; Function: Sets the memory at $4000-$4003 to $FF
 clearinput:
                 move.l #$ffffffff,$4000
 
