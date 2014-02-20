@@ -43,9 +43,7 @@ update-led:
 score:
 	or.w #$0700,SR		;block interrupts
 	cmp.b #0,d5		;check direction
-	bne leftscore
-	add.b #1,d4		;add 1 to right score
-	bra score-done
+	beq score-right
 score-left:
 	or.w #$700,SR		;block interrupts
 	add.b #1,d3		;add 1 to left score
