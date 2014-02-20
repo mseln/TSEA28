@@ -5,39 +5,39 @@
 start:
 	move.l $7000,a7		;set stackpointer
 	movem.l #0,d0-d7	;clear registers
-	jsr setup-interrupt
-	jsr setup-pia
+	jsr setup_interrupt
+	jsr setup_pia
 	and.w $f8ff,SR		;set interruptlevel 0
 
-game-init:
+game_init:
 	move.b #ff,d6		;mark serve
 	move.b #1,d2		;ball at right edge
 
 game:
-	cmp.b #0,d2		;ball out-of-bounds?
-	beq out-of-bound
+	cmp.b #0,d2		;ball out_of_bounds?
+	beq out_of_bound
 	move.b #500,d0		;delaytime
 	jsr delay
-	jsr update-ball
+	jsr update_ball
 	bra game
 	
-out-of-bound:
+out_of_bound:
 	jsr score
 	bra game
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-update-ball:
+update_ball:
 	or.w #$700,SR		;block interrupts
 	cmp.b #ff,d6		;serve?
-	beq update-led
-move-ball:
+	beq update_led
+move_ball:
 	cmp.b #0,d5		;check direction
-	bne move-right
-move-left:
+	bne move_right
+move_left:
 	lsl.b #1,d2		;move left
-	bra update-led
-move-right
+	bra update_led
+move_right
 	lsr.b #1,d2
-update-led:
+update_led:
 	move.b d2,$10080
 	and.w #$f8ff,SR		;allow interrupts
 	rts
@@ -45,19 +45,19 @@ update-led:
 score:
 	or.w #$0700,SR		;block interrupts
 	cmp.b #0,d5		;check direction
-	beq score-right
-score-left:
+	beq score_right
+score_left:
 	or.w #$700,SR		;block interrupts
 	add.b #1,d3		;add 1 to left score
 	move.b #ff,d5		;set direction right
-	move.b #128,d2		;ball at left-end
-	bra score-done
-score-right:
+	move.b #128,d2		;ball at left_end
+	bra score_done
+score_right:
 	or.w #$700,SR		;block interrupts
 	add.b #1,d4
 	move.b #0,d5		;set direction left
-	move.b #1,d2		;ball at right-end
-score-done:
+	move.b #1,d2		;ball at right_end
+score_done:
 	move.b #$ff,d6		;mark serve
 	and.w #$f8ff,SR		;allow interrupts
 	rts
@@ -68,16 +68,16 @@ delay:
 	bne delay
 	rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-setup-pia:
+setup_pia:
 	move.b #0,$10084	;address DDRA
-	move.b #$ff,$10080	;set port 0-7 for output - ballindicator
-	move.b #5,$10084	;address PIAA and set CRA-7 for interrupt 
+	move.b #$ff,$10080	;set port 0_7 for output _ ballindicator
+	move.b #5,$10084	;address PIAA and set CRA_7 for interrupt 
 	move.b #0,$10086	;address DDRB
-	;move.b #$ff,$10082	;set 0-7 as outputs
-	move.b #5,$10086	;address PIAB and set CRB-7 for interrupt
+	;move.b #$ff,$10082	;set 0_7 as outputs
+	move.b #5,$10086	;address PIAB and set CRB_7 for interrupt
 	rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-setup-interrupt:
+setup_interrupt:
 	LEA leftinterrupt,a1
 	LEA rightinterrupt,a2
 	move.l a1,$68
@@ -87,37 +87,37 @@ setup-interrupt:
 leftinterrupt:
 	tst.b $10082		;acknowledge lvl2 interrupt	
 	cmp.b #128,d2		;ball at left edge?
-	bne not-left-end	
-	cmp.b #0,d6		;ball in-game?
-	beq switch-right
-	move.b #0,d6		;put ball in-game
-	bra done-left
-switch-right:
-	neg.b d5		;change ball-direction
-	bra done-left
-not-left-end:
-	cmp.b #ff,d6		;right-serve?
-	beq done-left
-	jsr score-right
-done-left:
+	bne not_left_end	
+	cmp.b #0,d6		;ball in_game?
+	beq switch_right
+	move.b #0,d6		;put ball in_game
+	bra done_left
+switch_right:
+	neg.b d5		;change ball_direction
+	bra done_left
+not_left_end:
+	cmp.b #ff,d6		;right_serve?
+	beq done_left
+	jsr score_right
+done_left:
 	rte
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 rightinterrupt:
 	tst.b $10080		;acknowledge lvl5 interrupt
 	cmp.b #1,d2		;ball at right edge?
-	bne not-right-end
-	cmp.b #0,d6		;ball in-game?
-	beq switch-left
-	move.b #0,d6		;put ball in-game
-	bra done-right
-switch-left:
+	bne not_right_end
+	cmp.b #0,d6		;ball in_game?
+	beq switch_left
+	move.b #0,d6		;put ball in_game
+	bra done_right
+switch_left:
 	neg.b d5
-	bra done-right
-not-right-end:
-	cmp.b #ff,d6		;left-serve?
-	beq done-right		
-	jsr score-left
-done-right:
+	bra done_right
+not_right_end:
+	cmp.b #ff,d6		;left_serve?
+	beq done_right		
+	jsr score_left
+done_right:
 	rte
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
