@@ -1,0 +1,150 @@
+68K GAS  ./lab2.s 			page 1
+
+
+   1               	;; LAB2b
+   2               	;; $7000 - stackpekare, d0 - delay, d2 - ball, d3 - left
+   3               	;; d4 - right
+   4               	;; d5 - direction, d6 - serve
+   5               	start:
+   6 0000 2E7C 0000 		move.l #$7000,a7		;set stackpointer
+   6      7000 
+   7 0006 7000      		move.l #0,d0	;clear registers
+   8 0008 7200      		move.l #0,d1	;clear registers
+   9 000a 7400      		move.l #0,d2	;clear registers
+  10 000c 7600      		move.l #0,d3	;clear registers
+  11 000e 7800      		move.l #0,d4	;clear registers
+  12 0010 7A00      		move.l #0,d5	;clear registers
+  13 0012 7C00      		move.l #0,d6	;clear registers
+  14 0014 7E00      		move.l #0,d7	;clear registers
+  15 0016 4EBA 00BA 		jsr setup_interrupt
+  16 001a 4EBA 008C 		jsr setup_pia
+  17 001e 027C F8FF 		and.w #$f8ff,SR		;set interruptlevel 0
+  18               	
+  19               	game_init:
+  20 0022 1C3C 00FF 		move.b #$ff,d6		;mark serve
+  21 0026 143C 0001 		move.b #1,d2		;ball at right edge
+  22 002a 2E3C 0000 	    move.l #$8000,d7
+  22      8000 
+  23               	game:
+  24 0030 0C02 0000 		cmp.b #0,d2		;ball out_of_bounds?
+  25 0034 670C      		beq out_of_bound
+  26 0036 2007      		move.l d7,d0		;delaytime
+  27 0038 4EBA 0062 		jsr delay
+  28 003c 4EBA 000A 		jsr update_ball
+  29 0040 60EE      		bra game
+  30               		
+  31               	out_of_bound:
+  32 0042 4EBA 0026 		jsr score
+  33 0046 60E8      		bra game
+  34               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  35               	update_ball:
+  36 0048 007C 0700 		or.w #$700,SR		;block interrupts
+  37 004c 0C06 00FF 		cmp.b #$ff,d6		;serve?
+  38 0050 670C      		beq update_led
+  39               	move_ball:
+  40 0052 0C05 0000 		cmp.b #0,d5		;check direction
+  41 0056 6604      		bne move_right
+  42               	move_left:
+  43 0058 E30A      		lsl.b #1,d2		;move left
+  44 005a 6002      		bra update_led
+  45               	move_right
+  46 005c E20A      		lsr.b #1,d2
+  47               	update_led:
+  48 005e 13C2 0001 		move.b d2,$10080
+  48      0080 
+  49 0064 027C F8FF 		and.w #$f8ff,SR		;allow interrupts
+  50 0068 4E75      		rts
+  51               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  52               	score:
+  53 006a 007C 0700 		or.w #$0700,SR		;block interrupts
+  54 006e 0C05 0000 		cmp.b #0,d5		;check direction
+68K GAS  ./lab2.s 			page 2
+
+
+  55 0072 6710      		beq score_right
+  56               	score_left:
+  57 0074 007C 0700 		or.w #$700,SR		;block interrupts
+  58 0078 5203      		add.b #1,d3		;add 1 to left score
+  59 007a 1A3C 00FF 		move.b #$ff,d5		;set direction right
+  60 007e 143C 0080 		move.b #128,d2		;ball at left_end
+  61 0082 600E      		bra score_done
+  62               	score_right:
+  63 0084 007C 0700 		or.w #$700,SR		;block interrupts
+  64 0088 5204      		add.b #1,d4
+  65 008a 1A3C 0000 		move.b #0,d5		;set direction left
+  66 008e 143C 0001 		move.b #1,d2		;ball at right_end
+  67               	score_done:
+  68 0092 1C3C 00FF 		move.b #$ff,d6		;mark serve
+  69 0096 027C F8FF 		and.w #$f8ff,SR		;allow interrupts
+  70 009a 4E75      		rts
+  71               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  72               	delay:
+  73 009c 5380      		sub.l #1,d0
+  74 009e 0C80 0000 		cmp.l #0,d0
+  74      0000 
+  75 00a4 66F6      		bne delay
+  76 00a6 4E75      		rts
+  77               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  78               	setup_pia:
+  79 00a8 13FC 0000 		move.b #0,$10084	;address DDRA
+  79      0001 0084 
+  80 00b0 13FC 00FF 		move.b #$ff,$10080	;set port 0_7 for output _ ballindicator
+  80      0001 0080 
+  81 00b8 13FC 0005 		move.b #5,$10084	;address PIAA and set CRA_7 for interrupt 
+  81      0001 0084 
+  82 00c0 13FC 0000 		move.b #0,$10086	;address DDRB
+  82      0001 0086 
+  83               		;move.b #$ff,$10082	;set 0_7 as outputs
+  84 00c8 13FC 0005 		move.b #5,$10086	;address PIAB and set CRB_7 for interrupt
+  84      0001 0086 
+  85 00d0 4E75      		rts
+  86               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  87               	setup_interrupt:
+  88 00d2 43FA 0010 		LEA leftinterrupt,a1
+  89 00d6 45FA 0036 		LEA rightinterrupt,a2
+  90 00da 21C9 0068 		move.l a1,$68
+  91 00de 21CA 0074 		move.l a2,$74
+  92 00e2 4E75      		rts 
+  93               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  94               	leftinterrupt:
+  95 00e4 4A39 0001 		tst.b $10082		;acknowledge lvl2 interrupt	
+  95      0082 
+  96 00ea 0C02 0080 		cmp.b #128,d2		;ball at left edge?
+  97 00ee 6612      		bne not_left_end	
+  98 00f0 0C06 0000 		cmp.b #0,d6		;ball in_game?
+  99 00f4 6706      		beq switch_right
+ 100 00f6 1C3C 0000 		move.b #0,d6		;put ball in_game
+ 101 00fa 6010      		bra done_left
+ 102               	switch_right:
+ 103 00fc 0A05 00FF 		eor.b #$FF,d5		;change ball_direction
+ 104 0100 600A      		bra done_left
+68K GAS  ./lab2.s 			page 3
+
+
+ 105               	not_left_end:
+ 106 0102 0C06 00FF 		cmp.b #$ff,d6		;right_serve?
+ 107 0106 6704      		beq done_left
+ 108 0108 4EBA FF7A 		jsr score_right
+ 109               	done_left:
+ 110 010c 4E73      		rte
+ 111               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 112               	rightinterrupt:
+ 113 010e 4A39 0001 		tst.b $10080		;acknowledge lvl5 interrupt
+ 113      0080 
+ 114 0114 0C02 0001 		cmp.b #1,d2		;ball at right edge?
+ 115 0118 6612      		bne not_right_end
+ 116 011a 0C06 0000 		cmp.b #0,d6		;ball in_game?
+ 117 011e 6706      		beq switch_left
+ 118 0120 1C3C 0000 		move.b #0,d6		;put ball in_game
+ 119 0124 6010      		bra done_right
+ 120               	switch_left:
+ 121 0126 0A05 00FF 		eor.b #$FF,d5
+ 122 012a 600A      		bra done_right
+ 123               	not_right_end:
+ 124 012c 0C06 00FF 		cmp.b #$ff,d6		;left_serve?
+ 125 0130 6704      		beq done_right		
+ 126 0132 4EBA FF40 		jsr score_left
+ 127               	done_right:
+ 128 0136 4E73      		rte
+ 129               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 130               	

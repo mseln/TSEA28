@@ -3,20 +3,27 @@
 ;; d4 - right
 ;; d5 - direction, d6 - serve
 start:
-	move.l $7000,a7		;set stackpointer
-	movem.l #0,d0-d7	;clear registers
+	move.l #$7000,a7		;set stackpointer
+	move.l #0,d0	;clear registers
+	move.l #0,d1	;clear registers
+	move.l #0,d2	;clear registers
+	move.l #0,d3	;clear registers
+	move.l #0,d4	;clear registers
+	move.l #0,d5	;clear registers
+	move.l #0,d6	;clear registers
+	move.l #0,d7	;clear registers
 	jsr setup_interrupt
 	jsr setup_pia
-	and.w $f8ff,SR		;set interruptlevel 0
+	and.w #$f8ff,SR		;set interruptlevel 0
 
 game_init:
-	move.b #ff,d6		;mark serve
+	move.b #$ff,d6		;mark serve
 	move.b #1,d2		;ball at right edge
-
+    move.l #$8000,d7
 game:
 	cmp.b #0,d2		;ball out_of_bounds?
 	beq out_of_bound
-	move.b #500,d0		;delaytime
+	move.l d7,d0		;delaytime
 	jsr delay
 	jsr update_ball
 	bra game
@@ -27,7 +34,7 @@ out_of_bound:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 update_ball:
 	or.w #$700,SR		;block interrupts
-	cmp.b #ff,d6		;serve?
+	cmp.b #$ff,d6		;serve?
 	beq update_led
 move_ball:
 	cmp.b #0,d5		;check direction
@@ -49,7 +56,7 @@ score:
 score_left:
 	or.w #$700,SR		;block interrupts
 	add.b #1,d3		;add 1 to left score
-	move.b #ff,d5		;set direction right
+	move.b #$ff,d5		;set direction right
 	move.b #128,d2		;ball at left_end
 	bra score_done
 score_right:
@@ -63,8 +70,8 @@ score_done:
 	rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 delay:
-	sub.b #1,d0
-	cmp.b #0,d0
+	sub.l #1,d0
+	cmp.l #0,d0
 	bne delay
 	rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -93,10 +100,10 @@ leftinterrupt:
 	move.b #0,d6		;put ball in_game
 	bra done_left
 switch_right:
-	neg.b d5		;change ball_direction
+	eor.b #$FF,d5		;change ball_direction
 	bra done_left
 not_left_end:
-	cmp.b #ff,d6		;right_serve?
+	cmp.b #$ff,d6		;right_serve?
 	beq done_left
 	jsr score_right
 done_left:
@@ -111,10 +118,10 @@ rightinterrupt:
 	move.b #0,d6		;put ball in_game
 	bra done_right
 switch_left:
-	neg.b d5
+	eor.b #$FF,d5
 	bra done_right
 not_right_end:
-	cmp.b #ff,d6		;left_serve?
+	cmp.b #$ff,d6		;left_serve?
 	beq done_right		
 	jsr score_left
 done_right:

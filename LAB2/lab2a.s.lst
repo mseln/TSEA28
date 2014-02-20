@@ -1,0 +1,37 @@
+68K GAS  ./lab2a.s 			page 1
+
+
+   1               	start:
+   2 0000 2E7C 0000 		move.l #$7000,a7 	;stack
+   2      7000 
+   3 0006 43FA 002E 		lea  avbrott2,a1	;avbrott niv 2
+   4 000a 21C9 0068 	    move.l a1,$68
+   5 000e 43FA 0032 		lea  avbrott5,a1	;avbrott niv 2
+   6 0012 21C9 0074 	    move.l a1,$74
+   7               		
+   8 0016 4EB8 20EC 		jsr $20ec		;initiera PIA
+   9 001a 027C F8FF 		and.w #$F8FF,SR		;satt avbrottsniva till 0
+  10               	
+  11               	programloop:
+  12 001e 203C 0000 		move.l #1000,d0		
+  12      03E8 
+  13 0024 4EB8 2000 		jsr $2000		;DELAY
+  14 0028 007C 0700 		or.w #$0700,SR		;set interrupt lvl 7
+  15 002c 4EB8 2020 		jsr $2020		;SKBAK skriver ut 'BAKGRUNDSPROGRAM'
+  16 0030 027C F8FF 		and.w #$f8ff,SR     ;set interrupt lvl 0
+  17 0034 60E8      		bra programloop
+  18               		
+  19               	
+  20               	;;; AVBROTT NIV 2 $1100
+  21               	avbrott2:
+  22 0036 4A39 0001 		tst.b $10082		;acknowledge
+  22      0082 
+  23 003c 4EB8 2048 		jsr $2048		;SKAVV
+  24 0040 4E73      		rte
+  25               	
+  26               	;;; AVBROTT NIV 5 $1200
+  27               	avbrott5:
+  28 0042 4A39 0001 		tst.b $10080		;acknowledge
+  28      0080 
+  29 0048 4EB8 20A6 		jsr $20a6		;SKAVH skriver ut avbrott hoger
+  30 004c 4E73      		rte			
