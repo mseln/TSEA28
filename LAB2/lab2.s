@@ -16,7 +16,7 @@ game-init:
 game:
 	cmp.b #0,d2		;ball out-of-bounds?
 	beq out-of-bound
-	move.b 500,d0
+	move.b #500,d0
 	jsr delay
 	jsr update-ball
 	bra game
