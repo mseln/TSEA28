@@ -16,7 +16,7 @@ game-init:
 game:
 	cmp.b #0,d2		;ball out-of-bounds?
 	beq out-of-bound
-	move.b #500,d0
+	move.b #500,d0		;delaytime
 	jsr delay
 	jsr update-ball
 	bra game
@@ -29,8 +29,10 @@ update-ball:
 	or.w #$700,SR		;block interrupts
 	cmp.b #ff,d6		;serve?
 	beq update-led
+move-ball:
 	cmp.b #0,d5		;check direction
 	bne move-right
+move-left:
 	lsl.b #1,d2		;move left
 	bra update-led
 move-right
@@ -47,14 +49,14 @@ score:
 score-left:
 	or.w #$700,SR		;block interrupts
 	add.b #1,d3		;add 1 to left score
-	move.b #ff,d5		;direction right
-	move.b #128,d2		;ball left-end
+	move.b #ff,d5		;set direction right
+	move.b #128,d2		;ball at left-end
 	bra score-done
 score-right:
 	or.w #$700,SR		;block interrupts
 	add.b #1,d4
-	move.b #0,d5		;direction left
-	move.b #1,d2		;ball right-end
+	move.b #0,d5		;set direction left
+	move.b #1,d2		;ball at right-end
 score-done:
 	move.b #$ff,d6		;mark serve
 	and.w #$f8ff,SR		;allow interrupts
@@ -117,3 +119,5 @@ not-right-end:
 	jsr score-left
 done-right:
 	rte
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
