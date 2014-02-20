@@ -5,18 +5,19 @@ start:
 	
 	jsr $c300		;las in subrutiner
 	jsr $20ec		;initiera PIA
-
 	and.w #$F8FF,SR		;satt avbrottsniva till 0
 
 programloop:
 	move.l #1000,d0		
 	jsr $2000		;DELAY
+	or.w #$0700,SR		;set interrupt lvl 7
 	jsr $2020		;SKBAK skriver ut 'BAKGRUNDSPROGRAM'
+	and.w #$f8ff,SR
 	bra programloop
 	
 
 ;;; AVBROTT NIV 2 $1100
-avbrott 2:
+avbrott2:
 	tst.b $10082		;acknowledge
 	jsr $2048		;SKAVV
 	rte
