@@ -6,7 +6,7 @@ start:
 	jsr $c300		;las in subrutiner
 	jsr $20ec		;initiera PIA
 
-	and.w #%F8FF,SR		;satt avbrottsniva till 0
+	and.w #$F8FF,SR		;satt avbrottsniva till 0
 
 programloop:
 	move.l #1000,d0		
@@ -17,7 +17,7 @@ programloop:
 
 ;;; AVBROTT NIV 2 $1100
 avbrott 2:
-	tst.b $1008?		;acknowledge
+	tst.b $10082		;acknowledge
 	jsr $2048		;SKAVV
 	rte
 
