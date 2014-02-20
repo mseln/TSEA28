@@ -1,12 +1,13 @@
 ;; LAB2b
-;; $7000 - stackpekare, d0 - delay, d2 - ball, d3,d4 - score,
+;; $7000 - stackpekare, d0 - delay, d2 - ball, d3 - left
+;; d4 - right
 ;; d5 - direction, d6 - serve
 start:
 	move.l $7000,a7		;set stackpointer
 	movem.l #0,d0-d7	;clear registers
-	and.w $f8ff,SR		;set interruptlevel 0
 	jsr setup-interrupt
 	jsr setup-pia
+	and.w $f8ff,SR		;set interruptlevel 0
 
 game-init:
 	move.b #ff,d6		;mark serve
@@ -25,6 +26,7 @@ out-of-bound:
 	bra game
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 update-ball:
+	or.w #$700,SR		;block interrupts
 	cmp.b #ff,d6		;serve?
 	beq update-led
 	cmp.b #0,d5		;check direction
@@ -35,18 +37,29 @@ move-right
 	lsr.b #1,d2
 update-led:
 	move.b d2,$10080
+	and.w #$f8ff,SR		;allow interrupts
 	rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 score:
+	or.w #$0700,SR		;block interrupts
 	cmp.b #0,d5		;check direction
 	bne leftscore
 	add.b #1,d4		;add 1 to right score
 	bra score-done
-leftscore:
+score-left:
+	or.w #$700,SR		;block interrupts
 	add.b #1,d3		;add 1 to left score
+	move.b #ff,d5		;direction right
+	move.b #128,d2		;ball left-end
 	bra score-done
+score-right:
+	or.w #$700,SR		;block interrupts
+	add.b #1,d4
+	move.b #0,d5		;direction left
+	move.b #1,d2		;ball right-end
 score-done:
 	move.b #$ff,d6		;mark serve
+	and.w #$f8ff,SR		;allow interrupts
 	rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 delay:
