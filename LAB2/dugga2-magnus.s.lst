@@ -1,0 +1,173 @@
+68K GAS  ./dugga2-magnus.s 			page 1
+
+
+   1               	*******************************************************************************
+   2               	*       Din nuvarande f?rberedelseuppgift f?r lab 2 ser ut som f?ljer
+   3               	*******************************************************************************
+   4               	
+   5               	*******************************************************************************
+   6               	*       Detta program skriver ut ett meddelande genom att anropa en
+   7               	*     subrutin som tar emot en formatsträng i a0 samt parametrar på stacken
+   8               	*     För att lösa denna uppgift måste du reda ut vad som har hamnat på
+   9               	*           stacken i samband med att detta program körs
+  10               	*******************************************************************************
+  11               	
+  12               	; test:
+  13               	;        move.l #$51A4,a7
+  14               	;        move.l #26383,-(a7)
+  15               	;        move.l #5618,-(a7)
+  16               	;        move.l #22282,-(a7)
+  17               	;        move.w d0,-(a7)
+  18               	;        move.l a1,-(a7)
+  19               	;        move.l d1,-(a7)
+  20               	;        move.l d4,-(a7)
+  21               	;        move.w d2,-(a7)
+  22               	;        move.w d3,-(a7)
+  23               	;
+  24               	;        move.b #255,d7
+  25               	;        trap #14
+  26               	
+  27               	huvudprogram:
+  28 0000 2E7C 0000 	        move.l #$5200,a7    * För att lösa uppgiften måste du antagligen
+  28      5200 
+  29               	                            * lista ut vad det ska stå här istället för XXXX
+  30               	        * Pusha argumenten till skrivut på stacken
+  31 0006 2F3C 0000 	        move.l #26383,-(a7)
+  31      670F 
+  32 000c 2F3C 0000 	        move.l #5618,-(a7)
+  32      15F2 
+  33 0012 2F3C 0000 	        move.l #22282,-(a7)
+  33      570A 
+  34 0018 207C 0000 	        move.l #thestring,a0
+  34      0000 
+  35 001e 4EBA 000E 	        jsr skrivut
+  36 0022 DFFC 0000 	        add.l  #12,a7  * Poppa (och glöm bort) argumentet till skrivut
+  36      000C 
+  37 0028 1E3C 00FF 	        move.b #255,d7
+  38 002c 4E4E      	        trap #14
+  39               	skrivut:
+  40 002e 3F00      	       move.w d0,-(a7)
+  41 0030 2F09      	       move.l a1,-(a7)
+  42 0032 2F01      	       move.l d1,-(a7)
+  43 0034 2F04      	       move.l d4,-(a7)
+  44               	
+  45 0036 224F      	       move.l a7,a1
+  46 0038 D3FC 0000 	       add.l  #18,a1
+  46      0012 
+  47 003e 4281      	       clr.l  d1
+  48 0040 4284      	       clr.l  d4
+  49               	
+  50               	        * Teckenloop stegar igenom strängen och letar efter escapetecken (%)
+68K GAS  ./dugga2-magnus.s 			page 2
+
+
+  51               	teckenloop:    
+  52 0042 1018      	       move.b (a0)+,d0
+  53 0044 0C00 0000 	       cmp.b  #0,d0
+  54 0048 672A      	       beq    klar
+  55 004a 0C00 0025 	       cmp.b  #'%',d0
+  56 004e 6708      	       beq    escapetecken
+  57               	
+  58               	normalprint:   
+  59 0050 1800      	       move.b d0,d4
+  60 0052 4EBA 008E 	       jsr    printchar
+  61 0056 60EA      	       bra    teckenloop
+  62               	
+  63               	escapetecken:  
+  64 0058 1018      	       move.b (a0)+,d0
+  65 005a 0C00 0000 	       cmp.b  #0,d0
+  66 005e 6714      	       beq    klar
+  67               	
+  68 0060 0C00 0025 	       cmp.b  #'%',d0
+  69 0064 67EA      	       beq    normalprint
+  70               	
+  71 0066 0C00 0078 	       cmp.b  #'x',d0
+  72 006a 66D6      	       bne    teckenloop
+  73               	
+  74 006c 2219      	       move.l (a1)+,d1
+  75 006e 4EBA 000E 	       jsr    skriv_hex
+  76 0072 60CE      	       bra    teckenloop
+  77               	
+  78               	
+  79               	klar:
+  80 0074 281F      	       move.l (a7)+,d4
+  81 0076 221F      	       move.l (a7)+,d1
+  82 0078 225F      	       move.l (a7)+,a1
+  83 007a 301F      	       move.w (a7)+,d0
+  84 007c 4E75      	       rts
+  85               	       
+  86               	       
+  87               	       * Skriv ut ett nummer hexadecimalt
+  88               	skriv_hex:
+  89 007e 3F02      	       move.w d2,-(a7)
+  90 0080 3F03      	       move.w d3,-(a7)
+  91 0082 0C81 0000 	       cmp.l  #0,d1
+  91      0000 
+  92 0088 672C      	       beq    skriv_noll
+  93 008a 103C 0009 	       move.b #9,d0
+  94               	
+  95               	hexloop_innan_etta:
+  96 008e 0600 FFFF 	       add.b  #-1,d0
+  97 0092 672A      	       beq    hex_klar
+  98 0094 E999      	       rol.l  #4,d1
+  99 0096 1401      	       move.b d1,d2
+ 100 0098 0202 000F 	       and.b  #$f,d2
+ 101 009c 67F0      	       beq    hexloop_innan_etta
+ 102               	
+ 103 009e 4EBA 0024 	       jsr    skriv_hextecken
+ 104               	
+ 105               	hexloop_efter_etta
+ 106 00a2 0600 FFFF 	       add.b  #-1,d0
+68K GAS  ./dugga2-magnus.s 			page 3
+
+
+ 107 00a6 6716      	       beq    hex_klar
+ 108 00a8 E999      	       rol.l  #4,d1
+ 109 00aa 1401      	       move.b d1,d2
+ 110 00ac 0202 000F 	       and.b  #$f,d2
+ 111 00b0 4EBA 0012 	       jsr    skriv_hextecken
+ 112 00b4 60EC      	       bra    hexloop_efter_etta
+ 113               	       
+ 114               	skriv_noll:
+ 115 00b6 183C 0030 	       move.b #'0',d4
+ 116 00ba 4EBA 0026 	       jsr printchar
+ 117               	hex_klar:
+ 118 00be 361F      	       move.w (a7)+,d3
+ 119 00c0 341F      	       move.w (a7)+,d2
+ 120 00c2 4E75      	       rts
+ 121               	
+ 122               	       * Skriv ut en siffra mellan 0-15 på hexadecimal form på serieporten
+ 123               	skriv_hextecken:
+ 124 00c4 0C02 000A 	       cmp.b  #10,d2 *** <--- Här sätter vi en breakpoint
+ 125 00c8 6C0C      	       bge    tio_eller_mer
+ 126 00ca 0602 0030 	       add.b  #'0',d2
+ 127 00ce 1802      	       move.b d2,d4
+ 128 00d0 4EBA 0010 	       jsr    printchar
+ 129 00d4 4E75      	       rts
+ 130               	tio_eller_mer:
+ 131 00d6 0602 0037 	       add.b  #'A'-10,d2
+ 132 00da 1802      	       move.b d2,d4
+ 133 00dc 4EBA 0004 	       jsr    printchar
+ 134 00e0 4E75      	       rts
+ 135               	       
+ 136               	       
+ 137               	
+ 138               	        * Skriv ut tecknet i d4.b på serieporten
+ 139               	printchar:     
+ 140 00e2 1F05      	        move.b d5,-(a7)
+ 141               	waittx:        
+ 142 00e4 1A39 0001 	        move.b $10040,d5
+ 142      0040 
+ 143 00ea 0205 0002 	        and.b #2,d5
+ 144 00ee 67F4      	        beq waittx
+ 145 00f0 13C4 0001 	        move.b d4,$10042
+ 145      0042 
+ 146 00f6 1A1F      	        move.b (a7)+,d5
+ 147 00f8 4E75      	        rts
+ 148               	
+ 149               	thestring:
+ 150 00fa 4F63 6820 	        dc.b 'Och dagens vinnare har nummer $%x-$%x-$%x',13,10,0
+ 150      6461 6765 
+ 150      6E73 2076 
+ 150      696E 6E61 
+ 150      7265 2068 

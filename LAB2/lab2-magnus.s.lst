@@ -5,156 +5,44 @@
    2               	init:
    3 0000 2E7C 0000 	        move.l #$7000,a7        ; Set Stackpointer to $7000
    3      7000 
-   4 0006 4EBA 004E 	        jsr pinit
-   5 000a 4EBA 0094 	        jsr setup_interrupt_vectors
-   6 000e 4EBA 00C6 	        jsr setup_str1
-   7 0012 4EBA 00DC 	        jsr setup_str2
-   8 0016 4EBA 00F0 	        jsr setup_str3
-   9               	inf_loop:
-  10 001a 203C 0000 	        move.l #1000,d0
-  10      03E8 
-  11 0020 287C 0000 	        move.l #$4100,a4
-  11      4100 
-  12 0026 7A11      	        move.l #17,d5
-  13 0028 4EBA 009C 	        jsr print_str
-  14               	
-  15 002c 203C 0000 	        move.l #1000,d0
-  15      03E8 
-  16 0032 287C 0000 	        move.l #$4140,a4
-  16      4140 
-  17 0038 7A0F      	        move.l #15,d5
-  18 003a 4EBA 008A 	        jsr print_str
-  19               	
-  20 003e 203C 0000 	        move.l #1000,d0
-  20      03E8 
-  21 0044 287C 0000 	        move.l #$4180,a4
-  21      4180 
-  22 004a 7A10      	        move.l #16,d5
-  23 004c 4EBA 0078 	        jsr print_str
-  24               	        
-  25 0050 4EBA 003E 	        jsr delay
-  26 0054 60C4      	        bra inf_loop
-  27               	        
-  28               	
-  29               	pinit:
-  30 0056 4239 0001 	        clr.b $00010084
-  30      0084 
-  31 005c 4239 0001 	        clr.b $00010086
-  31      0086 
-  32 0062 13FC 00FF 	        move.b #255,$00010080
-  32      0001 0080 
-  33 006a 13FC 00FF 	        move.b #255,$00010082
-  33      0001 0082 
-  34 0072 13FC 001F 	        move.b #31,$00010084
-  34      0001 0084 
-  35 007a 13FC 001F 	        move.b #31,$00010086
-  35      0001 0086 
-  36 0082 4A39 0001 	        tst.b $00010080
-  36      0080 
-  37 0088 4A39 0001 	        tst.b $00010082
-  37      0082 
-  38 008e 4E75      	        rts
-  39               	
-  40               	delay:
-  41 0090 2F01      	        move.l d1,-(a7)
-  42               	one_ms:
-68K GAS  ./lab2-magnus.s 			page 2
-
-
-  43 0092 7268      	        move.l #104,d1
-  44               	count:
-  45 0094 5381      	        sub.l #1,d1
-  46 0096 6AFC      	        bpl.s count
-  47 0098 5380      	        subq.l #1,d0
-  48 009a 6AF6      	        bpl.s one_ms
-  49 009c 221F      	        move.l (a7)+,D1
-  50 009e 4E75      	        rts
-  51               	
-  52               	setup_interrupt_vectors:
-  53 00a0 11F8 1100 	        move.b $1100,$68
-  53      0068 
-  54 00a6 11F8 1200 	        move.b $1200,$74
-  54      0074 
-  55 00ac 4E75      	        rts
-  56               	
-  57               	
-  58               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  59               	; In argument: ASCII-coded charactarer at register d4
-  60               	; Varning - Denna rutin gar inte att stega sig igenom med TRACE da den
-  61               	; anvander serieporten pa ett satt som ar inkompatibelt med TRACE.
-  62               	print_char:
-  63 00ae 1F05      	                move.b d5,-(a7)         ; Spara undan d5 pa stacken
-  64               	waittx:
-  65 00b0 1A39 0001 	                move.b $10040,d5        ; Serieportens statusregister
-  65      0040 
-  66 00b6 0205 0002 	                and.b #2,d5             ; Isolera bit 1 (Ready to transmit)
-  67 00ba 67F4      	                beq waittx              ; Vanta tills serieporten ar klar att sanda
-  68 00bc 13C4 0001 	                move.b d4,$10042        ; Skicka ut
-  68      0042 
-  69 00c2 1A1F      	                move.b (a7)+,d5         ; Aterstall d5
-  70 00c4 4E75      	                rts                     ; Tips: Satt en breakpoint har om du har problem med trace!
-  71               	
-  72               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  73               	; In argument: Pekare till strangen i a4
-  74               	;              Langd pa strangen i d5
-  75               	print_str:
-  76 00c6 181C      	                move.b (a4)+,d4
-  77 00c8 4EBA FFE4 	                jsr print_char
-  78 00cc 0605 FFFF 	                add.b #-1,d5
-  79 00d0 6702      	                beq done
-  80 00d2 60F2      	                bra print_str
-  81               	done:
-  82 00d4 4E75      	                rts
-  83               	
-  84               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  85               	; In argument:  None
-  86               	; Out argument: Length of string in d5
-  87               	setup_str1:
-  88               	; Function sets up the string "BAKGRUNDSPROGRAM\n" to the memory 
-  89               	; adress $4100-$4110
-  90 00d6 227C 0000 	                move.l #$4100,a1        ; Where to put the string
-  90      4100 
-  91               	
-  92 00dc 4241 4B47 	loadbakg:        dc.b 'BAKGRUNDSPROGRAM$A'
-  92      5255 4E44 
-  92      5350 524F 
-68K GAS  ./lab2-magnus.s 			page 3
-
-
-  92      4752 414D 
-  92      2441 
-  93               	
-  94 00ee 4E75      	                rts
-  95               	
-  96               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  97               	; In argument:  None
-  98               	; Out argument: Length of string in d5
-  99               	setup_str2:
- 100               	; Function sets up the string "BAKGRUNDSPROGRAM\n" to the memory 
- 101               	; adress $4100-$4110
- 102 00f0 227C 0000 	                move.l #$4140,a1        ; Where to put the string
- 102      4140 
- 103               	
- 104 00f6 494E 5445 	load_left:      dc.b   'INTERRUPT LEFT$A'
- 104      5252 5550 
- 104      5420 4C45 
- 104      4654 2441 
- 105               	
- 106 0106 4E75      	                rts
- 107               	
- 108               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 109               	; In argument:  None
- 110               	; Out argument: Length of string in d5
- 111               	setup_str3:
- 112               	; Function sets up the string "BAKGRUNDSPROGRAM\n" to the memory 
- 113               	; adress $4100-$4110
- 114 0108 227C 0000 	                move.l #$4180,a1        ; Where to put the string
- 114      4180 
- 115               	
- 116 010e 494E 5445 	load_right:     dc.b   'INTERRUPT RIGHT$A'
- 116      5252 5550 
- 116      5420 5249 
- 116      4748 5424 
- 116      41
- 117               	
- 118 011f 004E 75   	                rts
+   4 0006 4EBA 0014 	        jsr pinit
+   5 000a 4EBA 0048 	        jsr setup_interrupt_vectors
+   6 000e 027C F8FF 	        and.w #$F8FF,sr
+   7               	inf_loop:
+   8 0012 4EBA 000E 	        jsr delay
+   9 0016 4EBA 0016 	        jsr skbak
+  10 001a 60F6      	        bra inf_loop
+  11               	        
+  12               	
+  13               	pinit:
+  14 001c 4EB8 20EC 	        jsr $20EC
+  15 0020 4E75      	        rts
+  16               	
+  17               	delay:
+  18 0022 203C 0000 	        move.l #1000,d0
+  18      03E8 
+  19 0028 4EB8 2000 	        jsr $2000
+  20 002c 4E75      	        rts
+  21               	
+  22               	skbak:
+  23 002e 007C 0700 	        or.w #$700,sr
+  24 0032 4EB8 2020 	        jsr $2020
+  25 0036 027C F8FF 	        and.w #$F8FF,sr
+  26 003a 4E75      	        rts
+  27               	skavv:
+  28 003c 4A39 0001 	        tst.b $10082
+  28      0082 
+  29 0042 4EB8 2048 	        jsr $2048
+  30 0046 4E73      	        rte
+  31               	skavh:
+  32 0048 4A39 0001 	        tst.b $10080
+  32      0080 
+  33 004e 4EB8 20A6 	        jsr $20A6
+  34 0052 4E73      	        rte
+  35               	
+  36               	setup_interrupt_vectors:
+  37 0054 43FA FFE6 	        lea skavv,a1
+  38 0058 21C9 0068 	        move.l a1,$68
+  39 005c 43FA FFEA 	        lea skavh,a1
+  40 0060 21C9 0074 	        move.l a1,$74
+  41 0064 4E75      	        rts
