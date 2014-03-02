@@ -1,0 +1,70 @@
+68K GAS  ./lab3.s 			page 1
+
+
+   1               	
+   2               	init:
+   3 0000 3E7C 7000 	        move.w #$7000,a7
+   4 0004 21FC 0000 	        move.l #$0,$3000
+   4      0000 3000 
+   5               	main_loop: 
+   6 000c 4EBA 0004 	        jsr bcd
+   7 0010 60FA      	        bra main_loop
+   8               	
+   9               	#########################################################
+  10               	#   function    bcd,                                    #
+  11               	#   desc.       decimal counter                         #
+  12               	#       inarg:  none                                    #
+  13               	#       outarg: none                                    #
+  14               	#########################################################
+  15               	bcd:
+  16 0012 48E7 7F7E 	        movem.l a1-a6/d1-d7,-(a7)       ; Push registers to stack
+  17               	
+  18 0016 227C 0000 	        move.l #$3000,a1                 ; Pointer to time memory
+  18      3000 
+  19 001c 123C 0000 	        move.b #$0,d1                   ; Reset counter
+  20 0020 163C 0001 	        move.b #$1,d3
+  21               	bcd_loop:
+  22 0024 1411      	        move.b (a1),d2                  ; Fetch time to d2
+  23 0026 D403      	        add.b d3,d2                     ; Increase time by one
+  24 0028 4EBA 0012 	        jsr bcd_carry                   ; Check if carry
+  25 002c 12C2      	        move.b d2,(a1)+                 ; Save time to and increase pointer
+  26               	
+  27 002e 5201      	        add.b #1,d1
+  28 0030 0C01 0004 	        cmp.b #4,d1                     ; Repeat 4 times
+  29 0034 66EE      	        bne bcd_loop
+  30               	bcd_done:
+  31 0036 4CDF 7EFE 	        movem.l (a7)+,a1-a6/d1-d7       ; Pop registers from stack
+  32 003a 4E75      	        rts
+  33               	#################    ############    ####################
+  34               	
+  35               	
+  36               	#########################################################
+  37               	#   function    bcd_carry,                              #
+  38               	#   desc.       checks if decimalbase is overflowing    #
+  39               	#       inarg:  number to check in d2                   #
+  40               	#       outarg: carry in d3                             #
+  41               	#########################################################
+  42               	bcd_carry:
+  43 003c 163C 0000 	        move.b #$0,d3                   ; Reset carry flag
+  44 0040 0C02 000A 	        cmp.b #$A,d2                    ; Check if carry
+  45 0044 6608      	        bne no_carry
+  46 0046 143C 0000 	        move.b #$0,d2                   ; Set d2 to 0 if carry
+  47 004a 163C 0001 	        move.b #$1,d3                   ; Set carry flag
+  48               	no_carry:
+  49 004e 4E75      	        rts
+  50               	#################    ############    ####################
+  51               	
+  52               	seg_mem:
+  53 0050 FC        	        dc.b $FC; 7seg 0 
+  54 0051 60        	        dc.b $60; 7seg 1 
+  55 0052 6A        	        dc.b $6A; 7seg 2 
+68K GAS  ./lab3.s 			page 2
+
+
+  56 0053 F2        	        dc.b $F2; 7seg 3 
+  57 0054 66        	        dc.b $66; 7seg 4 
+  58 0055 B6        	        dc.b $B6; 7seg 5 
+  59 0056 BE        	        dc.b $BE; 7seg 6 
+  60 0057 E0        	        dc.b $E0; 7seg 7 
+  61 0058 FE        	        dc.b $FE; 7seg 8 
+  62 0059 F6        	        dc.b $F6; 7seg 9 
