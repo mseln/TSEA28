@@ -1,70 +1,268 @@
 68K GAS  ./lab3.s 			page 1
 
 
-   1               	
-   2               	init:
-   3 0000 3E7C 7000 	        move.w #$7000,a7
-   4 0004 21FC 0000 	        move.l #$0,$3000
-   4      0000 3000 
-   5               	main_loop: 
-   6 000c 4EBA 0004 	        jsr bcd
-   7 0010 60FA      	        bra main_loop
-   8               	
-   9               	#########################################################
-  10               	#   function    bcd,                                    #
-  11               	#   desc.       decimal counter                         #
-  12               	#       inarg:  none                                    #
-  13               	#       outarg: none                                    #
-  14               	#########################################################
-  15               	bcd:
-  16 0012 48E7 7F7E 	        movem.l a1-a6/d1-d7,-(a7)       ; Push registers to stack
-  17               	
-  18 0016 227C 0000 	        move.l #$3000,a1                 ; Pointer to time memory
-  18      3000 
-  19 001c 123C 0000 	        move.b #$0,d1                   ; Reset counter
-  20 0020 163C 0001 	        move.b #$1,d3
-  21               	bcd_loop:
-  22 0024 1411      	        move.b (a1),d2                  ; Fetch time to d2
-  23 0026 D403      	        add.b d3,d2                     ; Increase time by one
-  24 0028 4EBA 0012 	        jsr bcd_carry                   ; Check if carry
-  25 002c 12C2      	        move.b d2,(a1)+                 ; Save time to and increase pointer
-  26               	
-  27 002e 5201      	        add.b #1,d1
-  28 0030 0C01 0004 	        cmp.b #4,d1                     ; Repeat 4 times
-  29 0034 66EE      	        bne bcd_loop
-  30               	bcd_done:
-  31 0036 4CDF 7EFE 	        movem.l (a7)+,a1-a6/d1-d7       ; Pop registers from stack
-  32 003a 4E75      	        rts
-  33               	#################    ############    ####################
-  34               	
-  35               	
-  36               	#########################################################
-  37               	#   function    bcd_carry,                              #
-  38               	#   desc.       checks if decimalbase is overflowing    #
-  39               	#       inarg:  number to check in d2                   #
-  40               	#       outarg: carry in d3                             #
+   1               	init:
+   2 0000 2E7C 0000 	        move.l #$7000,a7
+   2      7000 
+   3 0006 21FC 0000 	        move.l #$0,$3000
+   3      0000 3000 
+   4               	        
+   5 000e 4EBA 00D2 	        jsr setuppia
+   6 0012 4EBA 011A 	        jsr setuppwm
+   7 0016 027C F8FF 	        and.w #$F8FF,SR         ;set interruptlevel 0
+   8               	main_loop:
+   9 001a 4EBA 012C 	        jsr pwm
+  10 001e 60FA      	        bra main_loop
+  11               	
+  12               	#########################################################
+  13               	#   function    bcd,                                    #
+  14               	#   desc.       decimal counter                         #
+  15               	#       inarg:  none                                    #
+  16               	#       outarg: none                                    #
+  17               	#########################################################
+  18               	bcd:
+  19 0020 4A39 0001 	        tst.b $10082                    ; acknowledge lvl5 interrupt
+  19      0082 
+  20 0026 48E7 FFFE 	        movem.l a0-a6/d0-d7,-(a7)       ; Push registers to stack
+  21               	
+  22 002a 227C 0000 	        move.l #$3000,a1                ; Pointer to time memory
+  22      3000 
+  23 0030 123C 0000 	        move.b #$0,d1                   ; Reset counter
+  24 0034 163C 0001 	        move.b #$1,d3
+  25               	bcd_loop:
+  26 0038 1411      	        move.b (a1),d2                  ; Fetch time to d2
+  27 003a D403      	        add.b d3,d2                     ; Increase time by one
+  28 003c 4EBA 001A 	        jsr bcd_carry                   ; Check if carry
+  29 0040 12C2      	        move.b d2,(a1)+                 ; Save time to and increase pointer
+  30               	
+  31 0042 5201      	        add.b #1,d1
+  32 0044 0C01 0004 	        cmp.b #4,d1                     ; Repeat 4 times
+  33 0048 66EE      	        bne bcd_loop
+  34               	bcd_done:
+  35 004a 21FC 0000 	        move.l #$FFFF,$4010
+  35      FFFF 4010 
+  36 0052 4CDF 7FFF 	        movem.l (a7)+,a0-a6/d0-d7       ; Pop registers from stack
+  37 0056 4E73      	        rte
+  38               	#################    ############    ####################
+  39               	
+  40               	
   41               	#########################################################
-  42               	bcd_carry:
-  43 003c 163C 0000 	        move.b #$0,d3                   ; Reset carry flag
-  44 0040 0C02 000A 	        cmp.b #$A,d2                    ; Check if carry
-  45 0044 6608      	        bne no_carry
-  46 0046 143C 0000 	        move.b #$0,d2                   ; Set d2 to 0 if carry
-  47 004a 163C 0001 	        move.b #$1,d3                   ; Set carry flag
-  48               	no_carry:
-  49 004e 4E75      	        rts
-  50               	#################    ############    ####################
-  51               	
-  52               	seg_mem:
-  53 0050 FC        	        dc.b $FC; 7seg 0 
-  54 0051 60        	        dc.b $60; 7seg 1 
-  55 0052 6A        	        dc.b $6A; 7seg 2 
+  42               	#   function    bcd_carry,                              #
+  43               	#   desc.       checks if decimalbase is overflowing    #
+  44               	#       inarg:  number to check in d2                   #
+  45               	#       outarg: carry in d3                             #
+  46               	#########################################################
+  47               	bcd_carry:
+  48 0058 163C 0000 	        move.b #$0,d3                   ; Reset carry flag
+  49               	        
+  50 005c 1801      	        move.b d1,d4
+  51 005e 0204 0001 	        and.b #$1,d4
+  52 0062 670E      	        beq.b carry_up_to_9
 68K GAS  ./lab3.s 			page 2
 
 
-  56 0053 F2        	        dc.b $F2; 7seg 3 
-  57 0054 66        	        dc.b $66; 7seg 4 
-  58 0055 B6        	        dc.b $B6; 7seg 5 
-  59 0056 BE        	        dc.b $BE; 7seg 6 
-  60 0057 E0        	        dc.b $E0; 7seg 7 
-  61 0058 FE        	        dc.b $FE; 7seg 8 
-  62 0059 F6        	        dc.b $F6; 7seg 9 
+  53               	
+  54 0064 0C02 0006 	        cmp.b #$6,d2                    ; Check if carry
+  55 0068 6616      	        bne no_carry
+  56 006a 143C 0000 	        move.b #$0,d2                   ; Set d2 to 0 if carry
+  57 006e 163C 0001 	        move.b #$1,d3                   ; Set carry flag
+  58               	
+  59               	carry_up_to_9:
+  60 0072 0C02 000A 	        cmp.b #$A,d2                    ; Check if carry
+  61 0076 6608      	        bne no_carry
+  62               	        
+  63 0078 143C 0000 	        move.b #$0,d2                   ; Set d2 to 0 if carry
+  64 007c 163C 0001 	        move.b #$1,d3                   ; Set carry flag
+  65               	no_carry:
+  66 0080 4E75      	        rts
+  67               	#################    ############    ####################
+  68               	
+  69               	
+  70               	#########################################################
+  71               	#   function     seg_mux                                #
+  72               	#   desc. muxing through the 7-seg led                  #
+  73               	#       inarg:  none                                    #
+  74               	#       outarg: none                                    #
+  75               	#########################################################
+  76               	seg_mux:
+  77 0082 48E7 FFFE 	        movem.l a0-a6/d0-d7,-(a7)       ; Push registers to stack
+  78 0086 4A39 0001 	        tst.b $10080                    ; acknowledge lvl5 interrupt
+  78      0080 
+  79 008c 227C 0000 	        move.l #$3010,a1                ; Pointer active 7seg to memory
+  79      3010 
+  80 0092 1211      	        move.b (a1),d1                  ; Fetch which segment is active
+  81               	
+  82 0094 0281 0000 	        and.l #$3,d1
+  82      0003 
+  83 009a 4EBA 0038 	        jsr fetch_num                   ; Fetch number to be shown
+  84               	
+  85 009e 0283 0000 	        and.l #$F,d3
+  85      000F 
+  86 00a4 41FA 007E 	        lea seg_mem,a0                  ; Tabellstart till A0
+  87 00a8 D1C3      	        add.l d3,a0
+  88 00aa 1010      	        move.b (a0),d0
+  89               	
+  90               	
+  91 00ac 13C1 0001 	        move.b d1,$10082                ; set PIAB 
+  91      0082 
+  92 00b2 13C0 0001 	        move.b d0,$10080                ; set PIAA
+  92      0080 
+  93               	
+  94 00b8 5201      	        add.b #$1,d1                    ; Change state (00 -> 01 -> 10 -> 11)
+  95 00ba 1281      	        move.b d1,(a1)                  ; Save new active segment
+  96               	        
+  97 00bc 2038 4008 	        move.l $4008,d0
+  98 00c0 4A80      	        tst.l d0
+  99 00c2 6706      	        beq nop_duty
+ 100 00c4 0680 FFFF 	        add.l #-1,d0
+ 100      FFFF 
+ 101               	nop_duty:
+ 102 00ca 21C0 4008 	        move.l d0,$4008
+68K GAS  ./lab3.s 			page 3
+
+
+ 103               	
+ 104 00ce 4CDF 7FFF 	        movem.l (a7)+,a0-a6/d0-d7       ; Pop registers from stack
+ 105 00d2 4E73      	        rte
+ 106               	#################    ############    ####################
+ 107               	
+ 108               	
+ 109               	#########################################################
+ 110               	#   function     seg_mux                                #
+ 111               	#   desc. muxing through the 7-seg led                  #
+ 112               	#       inarg:  none                                    #
+ 113               	#       outarg: number from memory in d3                #
+ 114               	#########################################################
+ 115               	fetch_num:
+ 116 00d4 243C 0000 	        move.l #$3000,d2
+ 116      3000 
+ 117 00da D401      	        add.b d1,d2
+ 118 00dc 2442      	        move.l d2,a2                    ; Pointer to memory which shall be returned
+ 119 00de 1612      	        move.b (a2),d3
+ 120 00e0 4E75      	        rts        
+ 121               	#################    ############    ####################
+ 122               	
+ 123               	#########################################################
+ 124               	#   function     setuppia                               #
+ 125               	#   desc. muxing                                        #
+ 126               	#       inarg:  none                                    #
+ 127               	#       outarg: none                                    #
+ 128               	#########################################################
+ 129               	setuppia:
+ 130 00e2 13FC 0000 	        move.b #$00,$10084        ; Valj datariktningsregistret (DDRA)
+ 130      0001 0084 
+ 131 00ea 13FC 00FF 	        move.b #$FF,$10080        ; Satt alla pinnar pa PIAA som utgang
+ 131      0001 0080 
+ 132 00f2 13FC 0007 	        move.b #$07,$10084        ; Valj in/utgangsregistret och satt interrupt CRA_7
+ 132      0001 0084 
+ 133 00fa 13FC 0000 	        move.b #$00,$10086        ; Valj datariktningsregistret (DDRB)
+ 133      0001 0086 
+ 134 0102 13FC 00FF 	        move.b #$FF,$10082        ; Satt alla pinnar pa PIAB som utgang 
+ 134      0001 0082 
+ 135 010a 13FC 0007 	        move.b #$07,$10086        ; Valj in/utgangsregistret och satt interrupt CRB_7
+ 135      0001 0086 
+ 136               	        
+ 137 0112 21FC 0000 	        move.l #bcd,$68
+ 137      0000 0068 
+ 138 011a 21FC 0000 	        move.l #seg_mux,$74
+ 138      0000 0074 
+ 139 0122 4E75      	        rts
+ 140               	#################    ############    ####################
+ 141               	
+ 142               	seg_mem:
+ 143 0124 FC        	        dc.b $FC; 7seg 0 
+ 144 0125 60        	        dc.b $60; 7seg 1 
+ 145 0126 DA        	        dc.b $DA; 7seg 2 
+ 146 0127 F2        	        dc.b $F2; 7seg 3 
+ 147 0128 66        	        dc.b $66; 7seg 4 
+ 148 0129 B6        	        dc.b $B6; 7seg 5 
+ 149 012a BE        	        dc.b $BE; 7seg 6 
+ 150 012b E0        	        dc.b $E0; 7seg 7 
+68K GAS  ./lab3.s 			page 4
+
+
+ 151 012c FE        	        dc.b $FE; 7seg 8 
+ 152 012d F6        	        dc.b $F6; 7seg 9
+ 153               	
+ 154               	 
+ 155               	#########################################################
+ 156               	#   function     setuppwm                               #
+ 157               	#   desc. setting up pwm                                #
+ 158               	#       inarg:  none                                    #
+ 159               	#       outarg: none                                    #
+ 160               	#########################################################
+ 161               	setuppwm:
+ 162 012e 21FC 0000 	        move.l #1000,$4004
+ 162      03E8 4004 
+ 163 0136 21FC 0000 	        move.l #$FE,$4008
+ 163      00FE 4008 
+ 164 013e 21FC 0000 	        move.l #1000,$4000
+ 164      03E8 4000 
+ 165 0146 4E75      	        rts
+ 166               	#################    ############    ####################
+ 167               	
+ 168               	#########################################################
+ 169               	#   function     pwm                                    #
+ 170               	#   desc. pwming all numbers                            #
+ 171               	#       inarg:  none                                    #
+ 172               	#       outarg: none                                    #
+ 173               	#########################################################
+ 174               	pwm:    
+ 175 0148 2238 4004 	        move.l $4004,d1
+ 176 014c 2438 4008 	        move.l $4008,d2
+ 177               	        
+ 178 0150 0681 FFFF 	        add.l #-1,d1
+ 178      FFFF 
+ 179 0156 6B08      	        bmi reset        
+ 180               	
+ 181 0158 B481      	        cmp.l d1,d2
+ 182 015a 660A      	        bne nop
+ 183 015c 4EBA 0024 	        jsr turn_off_7seg
+ 184               	reset:
+ 185 0160 223C 0000 	        move.l #$FFFF,d1 
+ 185      FFFF 
+ 186               	nop:
+ 187 0166 21C1 4004 	        move.l d1,$4004
+ 188 016a 4E75      	        rts
+ 189               	#################    ############    ####################
+ 190               	
+ 191               	#########################################################
+ 192               	#   function     new_pwm                                #
+ 193               	#   desc. init new pwm loop                             #
+ 194               	#       inarg:  none                                    #
+ 195               	#       outarg: none                                    #
+ 196               	#########################################################
+ 197               	new_pwm:
+ 198 016c 21FC 0000 	        move.l #1000,$4000
+ 198      03E8 4000 
+ 199 0174 4E75      	        rts
+ 200               	#################    ############    ####################
+ 201               	
+68K GAS  ./lab3.s 			page 5
+
+
+ 202               	#########################################################
+ 203               	#   function     new_duty                               #
+ 204               	#   desc. init new pwm loop                             #
+ 205               	#       inarg:  none                                    #
+ 206               	#       outarg: none                                    #
+ 207               	#########################################################
+ 208               	new_duty:
+ 209 0176 2038 4000 	        move.l $4000,d0
+ 210 017a 0680 FFFF 	        add.l #-1,d0
+ 210      FFFF 
+ 211               	        
+ 212 0180 4E75      	        rts
+ 213               	#################    ############    ####################
+ 214               	
+ 215               	#########################################################
+ 216               	#   function     turn_off_7seg                          #
+ 217               	#   desc. pwming all numbers                            #
+ 218               	#       inarg:  none                                    #
+ 219               	#       outarg: none                                    #
+ 220               	#########################################################
+ 221               	turn_off_7seg:
+ 222 0182 13FC 0000 	        move.b #0,$10080                ; set PIAA
+ 222      0001 0080 
+ 223 018a 4E75      	        rts
+ 224               	#################    ############    ####################
