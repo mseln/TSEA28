@@ -4,8 +4,9 @@ init:
         
         jsr setuppia
         jsr setuppwm
-        and.w #$F8FF,SR         ;set interruptlevel 0
+        and.w #$F8FF,SR
 main_loop:
+        ; stop #$2000
         jsr pwm
         bra main_loop
 
@@ -87,20 +88,15 @@ seg_mux:
         add.l d3,a0
         move.b (a0),d0
 
-
+        move.b #0,$10080                ; turn light off
         move.b d1,$10082                ; set PIAB 
         move.b d0,$10080                ; set PIAA
 
         add.b #$1,d1                    ; Change state (00 -> 01 -> 10 -> 11)
         move.b d1,(a1)                  ; Save new active segment
-        
-        move.l $4008,d0
-        tst.l d0
-        beq nop_duty
-        add.l #-1,d0
-nop_duty:
-        move.l d0,$4008
-
+         
+        ; jsr update_duty
+ 
         movem.l (a7)+,a0-a6/d0-d7       ; Pop registers from stack
         rte
 #################    ############    ####################
@@ -159,9 +155,12 @@ seg_mem:
 #       outarg: none                                    #
 #########################################################
 setuppwm:
-        move.l #1000,$4004
-        move.l #$FE,$4008
-        move.l #1000,$4000
+        move.b #$FF,$4000
+        move.b #$AA,$4001
+        move.b #$66,$4002
+        move.b #$00,$4003
+
+        move.b #$0,4010
         rts
 #################    ############    ####################
 
@@ -171,20 +170,28 @@ setuppwm:
 #       inarg:  none                                    #
 #       outarg: none                                    #
 #########################################################
-pwm:    
-        move.l $4004,d1
-        move.l $4008,d2
-        
-        add.l #-1,d1
-        bmi reset        
+pwm:
+counter:
+        move.b $4010,d0
+        add.b #1,d0
+        cmp.b #$FF,d0
+        bne no_pwm_reset
+        move.b #0,d0
+no_pwm_reset: 
+        move.b d0,$4010
 
-        cmp.l d1,d2
-        bne nop
-        jsr turn_off_7seg
-reset:
-        move.l #$FFFF,d1 
-nop:
-        move.l d1,$4004
+pwm_control:
+        move.b $3010,d1                ; Active 7seg
+        and.b #$03,d1
+        move.l #$4000,d2
+        add.b d1,d2
+        move.l d2,a0
+        move.b (a0),d3
+        cmp d3,d0
+        beq turn_7seg_off
+        rts
+turn_7seg_off:
+        move.b #0,$10080                ; turn light off
         rts
 #################    ############    ####################
 
@@ -195,7 +202,6 @@ nop:
 #       outarg: none                                    #
 #########################################################
 new_pwm:
-        move.l #1000,$4000
         rts
 #################    ############    ####################
 
@@ -205,20 +211,15 @@ new_pwm:
 #       inarg:  none                                    #
 #       outarg: none                                    #
 #########################################################
-new_duty:
-        move.l $4000,d0
-        add.l #-1,d0
+update_duty:
+        move.b #1,d0
+next_num
+        move.b $4004,d1
         
-        rts
-#################    ############    ####################
+        and.b d0,d1
 
-#########################################################
-#   function     turn_off_7seg                          #
-#   desc. pwming all numbers                            #
-#       inarg:  none                                    #
-#       outarg: none                                    #
-#########################################################
-turn_off_7seg:
-        move.b #0,$10080                ; set PIAA
+        cmp.b #0,d0
+        lsl.b #1,d0
+        bne next_num 
         rts
 #################    ############    ####################
