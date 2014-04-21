@@ -76,12 +76,12 @@ delay:
 	rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 setup_pia:
-	move.b #0,$10084	;address DDRA
+	move.b #$0,$10084	;address DDRA
 	move.b #$ff,$10080	;set port 0_7 for output _ ballindicator
-	move.b #5,$10084	;address PIAA and set CRA_7 for interrupt 
-	move.b #0,$10086	;address DDRB
-	;move.b #$ff,$10082	;set 0_7 as outputs
-	move.b #5,$10086	;address PIAB and set CRB_7 for interrupt
+	move.b #$5,$10084	;address PIAA and set CRA_7 for interrupt 
+	move.b #$0,$10086	;address DDRB
+	move.b #$ff,$10082	;set 0_7 as outputs
+	move.b #$5,$10086	;address PIAB and set CRB_7 for interrupt
 	rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 setup_interrupt:

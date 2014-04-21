@@ -18,7 +18,7 @@
   13 0024 4EB8 2000 		jsr $2000		;DELAY
   14 0028 007C 0700 		or.w #$0700,SR		;set interrupt lvl 7
   15 002c 4EB8 2020 		jsr $2020		;SKBAK skriver ut 'BAKGRUNDSPROGRAM'
-  16 0030 027C F8FF 		and.w #$f8ff,SR     ;set interrupt lvl 0
+  16 0030 027C F8FF 		and.w #$F8FF,SR     ;set interrupt lvl 0
   17 0034 60E8      		bra programloop
   18               		
   19               	
